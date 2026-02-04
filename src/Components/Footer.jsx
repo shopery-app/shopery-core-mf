@@ -10,7 +10,6 @@ const Footer = () => {
   return (
     <footer className="bg-black border-t border-gray-800 py-16 px-4">
       <div className="max-w-[90%] lg:max-w-[85%] m-auto">
-
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 md:gap-0 mb-14">
           <div className="left-footer flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
             <div className="shopery">
@@ -19,15 +18,10 @@ const Footer = () => {
               </h2>
             </div>
           </div>
-
-          
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-gray-400">
-
           <div>
-            <h3 className="font-semibold text-lg mb-5 text-white">
-              Company
-            </h3>
+            <h3 className="font-semibold text-lg mb-5 text-white">Company</h3>
             <p className="text-sm mb-2">Find a location nearest you.</p>
             <p className="text-sm mb-4 font-medium cursor-pointer hover:text-white transition">
               See Our Stores
@@ -37,28 +31,44 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-5 text-white">
-              About Us
-            </h3>
+            <h3 className="font-semibold text-lg mb-5 text-white">About Us</h3>
             <ul className="space-y-3 text-sm">
-              <li className="hover:text-white cursor-pointer transition">Contact Us</li>
-              <li className="hover:text-white cursor-pointer transition">Sitemap</li>
-              <li className="hover:text-white cursor-pointer transition">Conditions</li>
-              <li className="hover:text-white cursor-pointer transition">Our Products</li>
-              <li className="hover:text-white cursor-pointer transition">Privacy Policy</li>
+              <li className="hover:text-white cursor-pointer transition">
+                Contact Us
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Sitemap
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Conditions
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Our Products
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Privacy Policy
+              </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-5 text-white">
-              Service
-            </h3>
+            <h3 className="font-semibold text-lg mb-5 text-white">Service</h3>
             <ul className="space-y-3 text-sm">
-              <li className="hover:text-white cursor-pointer transition">Help & Contact</li>
-              <li className="hover:text-white cursor-pointer transition">Returns & Refunds</li>
-              <li className="hover:text-white cursor-pointer transition">Online Stores</li>
-              <li className="hover:text-white cursor-pointer transition">Refer a Friend</li>
-              <li className="hover:text-white cursor-pointer transition">Terms & Conditions</li>
+              <li className="hover:text-white cursor-pointer transition">
+                Help & Contact
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Returns & Refunds
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Online Stores
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Refer a Friend
+              </li>
+              <li className="hover:text-white cursor-pointer transition">
+                Terms & Conditions
+              </li>
             </ul>
           </div>
 
@@ -71,7 +81,7 @@ const Footer = () => {
               collections and product launches.
             </p>
             <div className="flex items-center border border-white rounded-full overflow-hidden bg-black">
-             <input
+              <input
                 type="email"
                 placeholder="example@gmail.com"
                 className="px-4 py-3 text-sm w-full outline-none bg-black text-white
@@ -87,10 +97,22 @@ const Footer = () => {
         <div className="border-t border-gray-800 my-12"></div>
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-gray-500">
           <div className="flex items-center gap-6 text-gray-400">
-            <FaFacebookF size={22} className="cursor-pointer hover:text-white transition" />
-            <FaTwitter size={22} className="cursor-pointer hover:text-white transition" />
-            <FaLinkedinIn size={22} className="cursor-pointer hover:text-white transition" />
-            <FaTelegramPlane size={22} className="cursor-pointer hover:text-white transition" />
+            <FaFacebookF
+              size={22}
+              className="cursor-pointer hover:text-white transition"
+            />
+            <FaTwitter
+              size={22}
+              className="cursor-pointer hover:text-white transition"
+            />
+            <FaLinkedinIn
+              size={22}
+              className="cursor-pointer hover:text-white transition"
+            />
+            <FaTelegramPlane
+              size={22}
+              className="cursor-pointer hover:text-white transition"
+            />
           </div>
         </div>
       </div>
