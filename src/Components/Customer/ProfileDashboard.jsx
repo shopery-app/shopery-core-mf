@@ -138,7 +138,6 @@ const ProfileDashboard = () => {
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      setError(null);
       const token = localStorage.getItem("accessToken");
 
       if (!token) {
@@ -147,18 +146,17 @@ const ProfileDashboard = () => {
       }
 
       const response = await axios.get(`${apiURL}/users/me/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.status === "OK" && response.data.data) {
-        setCurrentUser(response.data.data);
-        dispatch({
-          type: "SET_INITIAL_DATA",
-          data: response.data.data,
-        });
+        const userData = response.data.data;
+        setCurrentUser(userData);
+        if (userData.profilePhotoUrl) {
+          setProfilePhotoUrl(userData.profilePhotoUrl);
+        }
+
+        dispatch ({ type: "SET_INITIAL_DATA", data: userData });
       }
     } catch (error) {
       console.error("Profile fetch error:", error);
@@ -235,56 +233,23 @@ const ProfileDashboard = () => {
       });
 
       if (response.data.status === "OK") {
-        await handleGetPhotoURL(true);
-        await fetchUserProfile();
+        const newPresignedURL = response.data.data;
+        setProfilePhotoUrl(newPresignedURL);
+        setCurrentUser((prevUser) => ({
+          ...prevUser,
+          profilePhotoUrl: newPresignedURL,
+        }))
+        setImageLoadError(false);
         showSuccess("Profile image updated successfully!");
       }
     } catch (error) {
       console.error("Image upload error:", error);
-      console.error("Upload error response:", error.response?.data);
       if (error.response?.status === 401) {
         logout();
         navigate("/signin");
       } else {
         showError("Failed to update profile image");
       }
-    }
-  };
-
-  const handleGetPhotoURL = async (forceRefresh = false) => {
-    try {
-      const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-
-      const response = await axios.get(`${apiURL}/users/me/photo/url`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        params: forceRefresh ? { t: Date.now() } : {},
-      });
-
-      if (response.data.status === "OK" && response.data.data) {
-        const photoUrl = response.data.data;
-
-        setImageLoadError(false);
-        setProfilePhotoUrl(photoUrl);
-
-        setCurrentUser((prevUser) => ({
-          ...prevUser,
-          profilePhotoUrl: photoUrl,
-        }));
-      } else {
-        setImageLoadError(true);
-      }
-    } catch (error) {
-      console.error("Failed when getting photo url", error);
-      console.error("Error response:", error.response?.data);
-      setImageLoadError(true);
     }
   };
 
@@ -360,7 +325,6 @@ const ProfileDashboard = () => {
     if (authenticated) {
       fetchUserProfile();
       handleGetCurrentAddress();
-      handleGetPhotoURL();
     } else {
       navigate("/signin");
     }
@@ -559,10 +523,10 @@ const ProfileDashboard = () => {
 
     setTimeout(async () => {
       try {
-        await handleGetPhotoURL();
+        await fetchUserProfile();
         setImageLoadError(false);
       } catch (error) {
-        console.error("Failed to refresh image URL:", error);
+        console.error("Failed to refresh image via profile fetch:", error);
       }
     }, 2000);
   };
