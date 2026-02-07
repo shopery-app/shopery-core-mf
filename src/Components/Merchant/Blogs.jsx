@@ -26,68 +26,44 @@ const SearchLoadingSpinner = memo(() => (
 ));
 SearchLoadingSpinner.displayName = "SearchLoadingSpinner";
 
-const BlogCard = memo(
-  ({ blog, index, onVisit, currentUserBlog = false }) => {
-    return (
-      <div
-        className={`bg-white rounded-xl lg:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group border transform hover:-translate-y-2 cursor-pointer ${
-          currentUserBlog
-            ? "border-emerald-500 ring-2 ring-emerald-200"
-            : "border-gray-100"
-        }`}
-      >
-        {currentUserBlog && (
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2 text-sm font-semibold flex items-center justify-center">
-            <i className="fa-solid fa-crown mr-2"></i>
-            Your Blog
-          </div>
-        )}
-
-        <div className="p-4 lg:p-6">
-          <h3 className="font-bold text-lg lg:text-xl text-gray-800 mb-2 lg:mb-3 truncate group-hover:text-emerald-600 transition-colors">
-            {blog.blogTitle || `Blog ${index + 1}`}
-          </h3>
-          <div className="text-gray-600 text-sm mb-4 h-12 lg:h-16 overflow-hidden">
-            <p className="leading-relaxed line-clamp-2 lg:line-clamp-3">
-              {blog.description ||
-                "Discover amazing stories and interesting articles at this wonderful blog"}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <div className="flex items-center">
-              <div className="flex text-yellow-400 text-base lg:text-lg">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <i key={star} className="fa-solid fa-star"></i>
-                ))}
-              </div>
-              <span className="text-gray-700 text-sm ml-2 font-semibold">
-                {blog.rating || "4.8"}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onVisit(blog.id, false)}
-            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            <i className="fa-solid fa-newspaper"></i>
-            Visit Blog
-          </button>
-        </div>
-        {currentUserBlog && (
-          <button
-            onClick={() => onVisit(blog.id, true)}
-            className="w-full mt-2 bg-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            <i className="fa-solid fa-tachometer-alt"></i>
-            Manage Blog
-          </button>
-        )}
+const BlogCard = memo(({ blog, onVisit, onAction, currentUserBlog = false }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col justify-between"> 
+      <div>
+        <h3 className="font-bold text-xl mb-2">{blog.blogTitle}</h3>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-3">{blog.content}</p>
       </div>
-    );
-  },
-);
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onAction(blog.id, 'like'); }}
+            className="flex-1 flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all"
+          >
+            <i className={`text-xl transition-all ${
+              blog.isLiked 
+                ? "fa-solid fa-heart !text-red-500" 
+                : "fa-regular fa-heart text-gray-400"
+            }`}></i> 
+            <span className="text-gray-700">Like</span>
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onAction(blog.id, 'save'); }}
+            className="flex-1 flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all"
+          >
+            <i className={`text-xl transition-all ${
+              blog.isSaved 
+                ? "fa-solid fa-bookmark !text-blue-600" 
+                : "fa-regular fa-bookmark text-gray-400"
+            }`}></i> 
+            <span className="text-gray-700">Save</span>
+          </button>
+
+        </div>
+      </div>
+    </div>
+  );
+});
 BlogCard.displayName = "BlogCard";
 
 const Notification = memo(({ notification, onClose }) => {
@@ -302,7 +278,7 @@ const CreateBlogModal = memo(
     onInputChange,
   }) => {
     if (!isOpen) return null;
-
+    
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl max-w-md w-full p-6">
@@ -408,7 +384,7 @@ const Blogs = memo(() => {
 
   const [modalState, setModalState] = useState({
     showCreateModal: false,
-    formData: { blogTitle: "", description: "" },
+    formData: { blogTitle: "", content: "" },
     formErrors: {},
   });
 
@@ -430,7 +406,7 @@ const Blogs = memo(() => {
   const { searchTerm, lastSearchTerm, sortBy, sortDirection } = searchState;
   const { showCreateModal, formData, formErrors } = modalState;
   const { userOwnedBlog, loadingUserBlog } = userBlogData;
-
+   
   const hasMerchantAccess = useMemo(() => hasMerchantAccount(), []);
 
   const processedBlogs = useMemo(() => {
@@ -502,9 +478,18 @@ const Blogs = memo(() => {
   }, [fetchBlogs]);
 
   const handleBlogVisit = useCallback((blogId, manage = false) => {
-    navigate(manage ? `/merchant/blogs/dashboard/${blogId}` : `/blogs/${blogId}`);
-  }, [navigate]);
-
+  if (manage) {
+    const blogToEdit = blogs.find(b => b.id === blogId);
+    setModalState({
+      showCreateModal: true,
+      formData: { blogTitle: blogToEdit.blogTitle, description: blogToEdit.description },
+      formErrors: {},
+      editingId: blogId 
+    });
+    } else {
+      navigate(`/blogs/${blogId}`);
+    }
+  }, [navigate, blogs]);
   const handleSearchChange = (e) => {
     setSearchState(prev => ({ ...prev, searchTerm: e.target.value }));
   };
@@ -518,7 +503,42 @@ const Blogs = memo(() => {
     setSearchState(prev => ({ ...prev, searchTerm: "", lastSearchTerm: "" }));
     fetchBlogs("", false);
   };
+  const handleBlogAction = useCallback(async (blogId, actionType, updateData = null) => {
+  try {
+    let response;
+    switch (actionType) {
+      case 'delete':
+        if (window.confirm("Bloqu silmək istədiyinizə əminsiniz?")) {
+          response = await axios.delete(`${apiURL}/users/me/blogs/${blogId}`);
+        } else return;
+        break;
+      case 'like':
+        response = await axios.post(`${apiURL}/users/me/blogs/${blogId}/like`);
+        break;
+      case 'save':
+        response = await axios.post(`${apiURL}/users/me/blogs/${blogId}/save`);
+        break;
+    }
 
+    if (response && response.data.status === "OK") {
+      setBlogsData(prev => ({
+        ...prev,
+        blogs: prev.blogs.map(blog => 
+          blog.id === blogId 
+            ? { 
+                ...blog, 
+                isLiked: actionType === 'like' ? !blog.isLiked : blog.isLiked,
+                isSaved: actionType === 'save' ? !blog.isSaved : blog.isSaved 
+              } 
+            : blog
+        )
+      }));
+      setNotification({ type: "success", message: `Success!` });
+    }
+  } catch (err) {
+    setNotification({ type: "error", message: "Error happening" });
+  }
+}, [apiURL]);
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Header />
@@ -611,8 +631,10 @@ const Blogs = memo(() => {
 
               <div className="flex-1">
                 {loading ? (
-                  <div className="flex justify-center items-center h-64"><LoadingSpinner /></div>
-                ) : (
+                  <div className="flex justify-center items-center h-64">
+                    <LoadingSpinner />
+                  </div>
+                ) : processedBlogs.length > 0 ? (
                   <>
                     <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
                       {processedBlogs.map((blog, index) => (
@@ -621,6 +643,7 @@ const Blogs = memo(() => {
                           blog={blog} 
                           index={index} 
                           onVisit={handleBlogVisit}
+                          onAction={handleBlogAction} 
                           currentUserBlog={blog.isUserBlog}
                         />
                       ))}
@@ -635,8 +658,21 @@ const Blogs = memo(() => {
                       />
                     </div>
                   </>
+                ) : (
+                  
+                    <div className="flex gap-2 mb-4">
+                    <button onClick={() => navigate('/blogs/liked')} className="text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full">
+                      <i className="fa-solid fa-heart mr-1"></i> Like
+                    </button>
+                    <button onClick={() => navigate('/blogs/saved')} className="text-sm text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
+                      <i className="fa-solid fa-bookmark mr-1"></i> Update
+                    </button>
+                  
+                  </div>
                 )}
               </div>
+               
+              
             </div>
           </div>
         </div>
@@ -655,6 +691,7 @@ const Blogs = memo(() => {
         onSubmit={(e) => {
           e.preventDefault();
         }}
+
       />
       
       <Footer />
