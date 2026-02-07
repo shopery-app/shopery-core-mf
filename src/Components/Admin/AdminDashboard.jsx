@@ -85,15 +85,15 @@ const AdminDashboard = () => {
         <section className="stats-grid">
           <div className="stat-card indigo">
             <div className="stat-icon"><i className="fa-solid fa-users"></i></div>
-            <div className="stat-info"><h3>Total Users</h3><p>{customers.length + merchants.length}+</p></div>
+            <div className="stat-info"><h3>Total Users</h3><p>{customers.length + merchants.length}</p></div>
           </div>
           <div className="stat-card emerald">
             <div className="stat-icon"><i className="fa-solid fa-store"></i></div>
-            <div className="stat-info"><h3>Active Shops</h3><p>{merchants.length}</p></div>
+            <div className="stat-info"><h3>Active Shops</h3><p>{tasks.filter(t => t.requestStatus === 'APPROVED').length}</p></div>
           </div>
           <div className="stat-card amber">
             <div className="stat-icon"><i className="fa-solid fa-list-check"></i></div>
-            <div className="stat-info"><h3>Pending Tasks</h3><p>{tasks.filter(t => t.requestStatus === 'PENDING').length}</p></div>
+            <div className="stat-info"><h3>Pending Tasks</h3><p>{tasks.filter(t => t.requestStatus === 'PENDING' || t.ticketStatus === 'OPEN').length}</p></div>
           </div>
         </section>
 
@@ -144,7 +144,7 @@ const AdminDashboard = () => {
                   ))}
                   {activeTab === 'tasks' && tasks.map(t => (
                     <tr key={t.id}>
-                      <td><span className="type-badge">{t.taskCategory.replace('_', ' ')}</span></td>
+                      <td><span className="type-badge">{t.taskCategory.replaceAll('_', ' ')}</span></td>
                       <td>{t.taskCreatorDto?.email}</td>
                       <td>{new Date(t.createdAt).toLocaleDateString()}</td>
                       <td><span className={`status-pill ${t.requestStatus || t.ticketStatus}`}>{t.requestStatus || t.ticketStatus}</span></td>
