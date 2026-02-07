@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import PublicRoute from "../Components/Routes/PublicRoute";
 import Home from "../Components/Home";
 import NotFound from "../Components/NotFound";
@@ -22,10 +22,62 @@ import Products from "../Components/Products/Products";
 import CategoryProducts from "../Components/Products/CategoryProducts";
 import CartDisplay from "../Components/Cart/CartDisplay";
 
+import AdminLogin from "../Components/Admin/AdminLogin";
+import AdminDashboard from "../Components/Admin/AdminDashboard";
+
+const AdminProtectedRoute = ({ children }) => {
+  const adminAccessToken = localStorage.getItem("adminAccessToken");
+  const adminUserStr = localStorage.getItem("adminUser");
+
+  if (!adminAccessToken || !adminUserStr) {
+    return <Navigate to="/admins" replace />;
+  }
+
+  try {
+    const user = JSON.parse(adminUserStr);
+    const hasAdmin = user.authorities?.some(auth => auth === "ADMIN" || auth.authority === "ADMIN");
+
+    if (!hasAdmin) {
+      localStorage.removeItem("adminAccessToken");
+      localStorage.removeItem("adminUser");
+      return <Navigate to="/admins" replace />;
+    }
+
+    return children;
+  } catch (error) {
+    return <Navigate to="/admins" replace />;
+  }
+};
+
+const AdminLoginWrapper = () => {
+  const adminToken = localStorage.getItem("adminAccessToken");
+  
+  if (adminToken) {
+    return <Navigate to="/admins/dashboard" replace />;
+  }
+  
+  const userToken = localStorage.getItem("accessToken");
+  const merchantToken = localStorage.getItem("merchantAccessToken");
+  if (userToken || merchantToken) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <AdminLogin />;
+};
+
 const Routing = () => {
-  const userMode = localStorage.getItem("appMode");
   return (
     <Routes>
+      <Route path="/admins" element={<AdminLoginWrapper />} />
+      <Route
+        path="/admins/dashboard"
+        element={
+          <AdminProtectedRoute>
+            <AdminDashboard />
+          </AdminProtectedRoute>
+        }
+      />
+
       <Route path="/" element={<Home />} />
       <Route
         path="/register"

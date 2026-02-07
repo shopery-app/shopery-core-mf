@@ -33,6 +33,17 @@ axios.interceptors.request.use(async (config) => {
     return config;
   }
 
+  // Check if this is an admin request
+  const isAdminRequest = (config.url || "").includes("/admin");
+  const adminAT = localStorage.getItem("adminAccessToken");
+
+  if (isAdminRequest) {
+    if (adminAT) {
+      config.headers.Authorization = `Bearer ${adminAT}`;
+    }
+    return config;
+  }
+
   const mode = getAppMode();
   let customerAT = localStorage.getItem("accessToken");
   const merchantAT = localStorage.getItem("merchantAccessToken");
@@ -96,6 +107,50 @@ axios.interceptors.response.use(
     const isRefresh =
       (original.url || "").includes("/auth/refresh-token") ||
       (original.url || "").includes("/auth-refresh");
+
+    // Handle admin token refresh
+    const isAdminRequest = (original.url || "").includes("/admin");
+    if (
+      isAdminRequest &&
+      !isRefresh &&
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      !original._retry
+    ) {
+      original._retry = true;
+      const adminRefreshToken = localStorage.getItem("adminRefreshToken");
+      
+      try {
+        if (!adminRefreshToken) throw new Error("No adminRefreshToken");
+        
+        const response = await axios.post(
+          `${apiURL}/auth/refresh-token`,
+          { refreshToken: adminRefreshToken },
+          {
+            headers: { "Content-Type": "application/json" },
+            meta: { skipAuth: true },
+          }
+        );
+        
+        const data = response.data?.data || response.data;
+        if (!data?.accessToken) throw new Error("No admin accessToken from refresh");
+        
+        localStorage.setItem("adminAccessToken", data.accessToken);
+        if (data.refreshToken) {
+          localStorage.setItem("adminRefreshToken", data.refreshToken);
+        }
+
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        return axios(original);
+      } catch (e) {
+        // Admin refresh failed, clear admin session and redirect
+        localStorage.removeItem("adminAccessToken");
+        localStorage.removeItem("adminRefreshToken");
+        localStorage.removeItem("adminUser");
+        window.location.href = "/admins";
+        return Promise.reject(e);
+      }
+    }
 
     const mode = getAppMode();
     const useMerchant =
@@ -171,4 +226,3 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
