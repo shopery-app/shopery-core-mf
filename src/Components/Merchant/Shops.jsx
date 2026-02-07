@@ -311,12 +311,14 @@ const CreateShopModal = memo(
     isLoading,
     onSubmit,
     onInputChange,
+    subscriptionTiers,
+    onTierSelect,
   }) => {
     if (!isOpen) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-md w-full p-6">
+        <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">
               Create New Shop
@@ -372,11 +374,59 @@ const CreateShopModal = memo(
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Select Subscription Tier
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {subscriptionTiers.map((tier) => (
+                  <div
+                    key={tier.name}
+                    onClick={() => onTierSelect(tier.name)}
+                    className={`cursor-pointer border-2 rounded-xl p-4 transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
+                      formData.subscriptionTier === tier.name
+                        ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100"
+                        : "border-gray-100 bg-gray-50 hover:border-emerald-200"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                           formData.subscriptionTier === tier.name ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-600"
+                        }`}>
+                          {tier.name}
+                        </span>
+                        <div className="text-emerald-700 font-bold text-sm">
+                          ${tier.price}
+                        </div>
+                      </div>
+                      <ul className="mt-2 space-y-1">
+                        {tier.features.map((feat, idx) => (
+                          <li key={idx} className="text-[11px] text-gray-600 flex items-start gap-1">
+                            <i className="fa-solid fa-check text-emerald-500 mt-0.5"></i>
+                            {feat}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {formData.subscriptionTier === tier.name && (
+                      <div className="mt-2 text-center text-emerald-600">
+                        <i className="fa-solid fa-circle-check text-lg"></i>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {formErrors.subscriptionTier && (
+                <p className="text-red-500 text-xs mt-2 font-medium">{formErrors.subscriptionTier}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -417,11 +467,43 @@ const Shops = memo(() => {
     sortDirection: "desc",
   });
 
+  const [subscriptionTiers, setSubscriptionTiers] = useState([]);
+
   const [modalState, setModalState] = useState({
     showCreateModal: false,
-    formData: { shopName: "", description: "" },
+    formData: { 
+      shopName: "", 
+      description: "",
+      subscriptionTier: ""
+    },
     formErrors: {},
   });
+
+  const fetchTiers = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("merchantAccessToken");
+      const response = await axios.get(`${apiURL}/dropdowns/subscription-tiers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.status === "OK") {
+        setSubscriptionTiers(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching tiers:", error);
+    }
+  }, []);
+
+  const handleTierSelect = useCallback((tierName) => {
+    setModalState((prev) => ({
+      ...prev,
+      formData: { ...prev.formData, subscriptionTier: tierName },
+      formErrors: { ...prev.formErrors, subscriptionTier: "" },
+    }));
+  }, []);
+
+  useEffect(() => {
+    fetchTiers();
+  }, [fetchTiers]);
 
   const [userShopData, setUserShopData] = useState({
     userOwnedShop: null,
@@ -773,6 +855,9 @@ const Shops = memo(() => {
       if (!formData.description.trim()) {
         errors.description = "Description is required";
       }
+      if (!formData.subscriptionTier) {
+        errors.subscriptionTier = "Please select a subscription plan!"
+      }
 
       if (Object.keys(errors).length > 0) {
         setModalState((prev) => ({ ...prev, formErrors: errors }));
@@ -890,6 +975,8 @@ const Shops = memo(() => {
         isLoading={createLoading}
         onSubmit={handleSubmitShop}
         onInputChange={handleInputChange}
+        subscriptionTiers={subscriptionTiers}
+        onTierSelect={handleTierSelect}
       />
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
