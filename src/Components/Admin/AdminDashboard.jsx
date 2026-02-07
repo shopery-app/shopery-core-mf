@@ -44,7 +44,7 @@ const AdminDashboard = () => {
         setTasks(response.data.data.content);
       }
       
-      setTotalPages(response.data.data.totalPages);
+      setTotalPages(response.data.data.page.totalPages);
     } catch (error) {
       if (error.response?.status === 401 || error.response?.status === 403) handleLogout();
     } finally {
@@ -129,14 +129,14 @@ const AdminDashboard = () => {
                 <tbody>
                   {activeTab === 'customers' && customers.map(c => (
                     <tr key={c.email}>
-                      <td><div className="user-cell"><div className="avatar">{c.firstName[0]}</div><div><strong>{c.firstName} {c.lastName}</strong><p>{c.email}</p></div></div></td>
+                      <td><div className="user-cell"><div className="avatar">{c.profilePhotoUrl ? (<img src={c.profilePhotoUrl} alt={c.firstName} className="avatar-img" />) : (c.firstName[0])}</div><div><strong>{c.firstName} {c.lastName}</strong><p>{c.email}</p></div></div></td>
                       <td>{c.phone}</td>
                       <td>{new Date(c.createdAt).toLocaleDateString()}</td>
                     </tr>
                   ))}
                   {activeTab === 'merchants' && merchants.map(m => (
                     <tr key={m.email}>
-                      <td><div className="user-cell"><div className="avatar merchant-av">{m.firstName[0]}</div><div><strong>{m.firstName} {m.lastName}</strong><p>{m.email}</p></div></div></td>
+                      <td><div className="user-cell"><div className="avatar merchant-av">{m.profilePhotoUrl ? (<img src={m.profilePhotoUrl} alt={m.firstName} className="avatar-img" />) : (m.firstName[0])}</div><div><strong>{m.firstName} {m.lastName}</strong><p>{m.email}</p></div></div></td>
                       <td>{m.phone}</td>
                       <td>{new Date(m.createdAt).toLocaleDateString()}</td>
                       <td><button onClick={() => handleAction('/admin/users/close', 'patch', {email: m.email})} className="btn-icon danger"><i className="fa-solid fa-user-slash"></i> Close</button></td>
@@ -172,9 +172,15 @@ const AdminDashboard = () => {
         </div>
 
         <footer className="modern-pagination">
-          <button disabled={page === 0} onClick={() => setPage(page - 1)}><i className="fa-solid fa-chevron-left"></i></button>
-          <span>Page <strong>{page + 1}</strong> of {totalPages}</span>
-          <button disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}><i className="fa-solid fa-chevron-right"></i></button>
+          <div className="pagination-controls">
+            <button disabled={page === 0} onClick={() => setPage(page - 1)} className="pag-btn"><i className="fa-solid fa-chevron-left"></i></button>
+            <div className="page-indicator"><span className="current-page">{page + 1}</span><span className="divider">/</span><span className="total-pages">{totalPages}</span></div>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)} className="pag-btn"><i className="fa-solid fa-chevron-right"></i></button>
+          </div>
+          
+          <div className="pagination-progress">
+            <div className="progress-bar-fill" style={{ width: `${((page + 1) / totalPages) * 100}%` }}></div>
+          </div>
         </footer>
       </main>
     </div>
