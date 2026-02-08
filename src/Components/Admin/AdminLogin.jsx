@@ -29,7 +29,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${apiURL}/auth/login`, {
+      const response = await axios.post(`${apiURL}/auth/admin/login`, {
         email: formData.email,
         password: formData.password
       }, { meta: { skipAuth: true } });
