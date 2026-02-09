@@ -48,7 +48,7 @@ export const useProducts = () => {
         fetchProducts({
           page: currentPage + 1,
           size: pageSize || 20,
-          sort: "createdAt, desc",
+          sort: "createdAt,desc",
           ...filters,
         })
       ))

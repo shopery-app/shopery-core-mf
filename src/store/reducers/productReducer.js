@@ -12,11 +12,11 @@ const CACHE_TIMEOUT = 300000;
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
   async (
-    { page = 0, size = 20, sort = "createdAt,desc", force = false, category = null, condition = null, priceRange = null } = {},
+    { page = 0, size = 20, sort = "createdAt,desc", force = false, category = null, condition = null, priceRange = null, keyword = "" } = {},
     { rejectWithValue, getState },
   ) => {
     try {
-      const hasFilters = category || condition || priceRange;
+      const hasFilters = category || condition || priceRange || keyword;
 
       if (page === 0 && !force && !hasFilters) {
         const state = getState();
@@ -45,6 +45,7 @@ export const fetchProducts = createAsyncThunk(
 
       if (category) params.category = category;
       if (condition) params.condition = condition;
+      if (keyword) params.keyword = keyword;
       if (priceRange && Array.isArray(priceRange)) {
         params.minPrice = priceRange[0];
         params.maxPrice = priceRange[1];
@@ -76,11 +77,9 @@ export const fetchFeaturedProducts = createAsyncThunk(
   "products/fetchFeaturedProducts",
   async (_, { rejectWithValue, getState }) => {
     try {
-      // Cache kontrolü
       const state = getState();
       const { featuredLastFetch, featuredProducts } = state.products;
 
-      // Eğer 5 dakika içinde fetch yapılmışsa ve data varsa, cache'den dön
       if (featuredLastFetch && featuredProducts.length > 0) {
         const timeSinceLastFetch =
           Date.now() - new Date(featuredLastFetch).getTime();
@@ -116,7 +115,6 @@ export const fetchFeaturedProducts = createAsyncThunk(
   },
 );
 
-// Async thunk - Product details al
 export const fetchProductDetails = createAsyncThunk(
   "products/fetchProductDetails",
   async (productId, { rejectWithValue }) => {
@@ -197,7 +195,12 @@ const initialState = {
   featuredError: null,
   detailsErrors: {},
 
-  filters: { category: null, priceRange: null, condition: null },
+  filters: { 
+    category: null, 
+    priceRange: null, 
+    condition: null,
+    keyword: ""
+  },
 
   lastFetch: null,
   featuredLastFetch: null,
@@ -211,7 +214,7 @@ const productSlice = createSlice({
       state.filters = { ...state.filters, ...action.payload };
     },
     clearFilters: (state) => {
-      state.filters = { category: null, priceRange: null, condition: null };
+      state.filters = { category: null, priceRange: null, condition: null, keyword: "" };
     },
     cacheProductDetails: (state, action) => {
       const { productId, productData } = action.payload;
@@ -250,8 +253,7 @@ const productSlice = createSlice({
           return;
         }
 
-        state.products =
-          currentPage === 0 ? content : [...state.products, ...content];
+        state.products = currentPage === 0 ? content : [...state.products, ...content];
         state.totalElements = totalElements;
         state.totalPages = totalPages;
         state.currentPage = currentPage;

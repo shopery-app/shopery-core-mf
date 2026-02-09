@@ -3,6 +3,7 @@ import { useProducts } from "../../hooks/useProducts";
 import { useCart } from "../../hooks/useCart";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
+import { filter } from "framer-motion/client";
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
@@ -245,8 +246,8 @@ const Products = memo(() => {
 
   const handleSearch = useCallback((e) => {
     e.preventDefault();
-    // Search funksiyası əlavə ediləcək
-  }, []);
+    filterProducts({ keyword: searchTerm });
+  }, [filterProducts, searchTerm]);
 
   const handleSortChange = useCallback(
     (newSort) => {
@@ -260,23 +261,7 @@ const Products = memo(() => {
     loadMoreProducts();
   }, [loadMoreProducts]);
 
-  const getDisplayProducts = useCallback(() => {
-    let displayProducts =
-      filteredProducts.length > 0 ? filteredProducts : products;
-
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      displayProducts = displayProducts.filter(
-        (product) =>
-          product.productName?.toLowerCase().includes(term) ||
-          product.description?.toLowerCase().includes(term),
-      );
-    }
-
-    return displayProducts;
-  }, [filteredProducts, products, searchTerm]);
-
-  const displayProducts = getDisplayProducts();
+  const displayProducts = products;
 
   if (error) {
     return (
@@ -285,16 +270,9 @@ const Products = memo(() => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <i className="fa-solid fa-exclamation-triangle text-5xl text-red-400 mb-4"></i>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Something went wrong
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Something went wrong</h2>
             <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={refreshProducts}
-              className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition"
-            >
-              Try Again
-            </button>
+            <button onClick={refreshProducts} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition">Try Again</button>
           </div>
         </div>
         <Footer />
