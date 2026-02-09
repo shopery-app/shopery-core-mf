@@ -1,4 +1,3 @@
-// src/store/reducers/productReducer.js
 import {
   createSlice,
   createAsyncThunk,
@@ -13,22 +12,19 @@ const CACHE_TIMEOUT = 300000;
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
   async (
-    { page = 0, size = 20, sort = "createdAt,desc", force = false } = {},
+    { page = 0, size = 20, sort = "createdAt,desc", force = false, category = null, condition = null, priceRange = null } = {},
     { rejectWithValue, getState },
   ) => {
     try {
-      if (page === 0 && !force) {
+      const hasFilters = category || condition || priceRange;
+
+      if (page === 0 && !force && !hasFilters) {
         const state = getState();
         const { lastFetch, products } = state.products;
 
         if (lastFetch && products.length > 0) {
           const timeSinceLastFetch = Date.now() - new Date(lastFetch).getTime();
           if (timeSinceLastFetch < CACHE_TIMEOUT) {
-            console.log(
-              "✅ Using cached products, skipping fetch. Cache age:",
-              Math.floor(timeSinceLastFetch / 1000),
-              "seconds",
-            );
             return {
               content: products,
               totalElements: state.products.totalElements,
@@ -41,16 +37,22 @@ export const fetchProducts = createAsyncThunk(
         }
       }
 
-      console.log("🔄 Fetching products from API - page:", page);
+      const params = {
+        page, 
+        size, 
+        sort,
+      };
+
+      if (category) params.category = category;
+      if (condition) params.condition = condition;
+      if (priceRange && Array.isArray(priceRange)) {
+        params.minPrice = priceRange[0];
+        params.maxPrice = priceRange[1];
+      }
+
       const response = await axios.get(`${apiURL}/products`, {
-        params: {
-          page,
-          size,
-          sort,
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
+        params,
+        headers: { "Content-Type": "application/json" },
       });
 
       if (response.data.status === "OK" && response.data.data) {
@@ -63,15 +65,11 @@ export const fetchProducts = createAsyncThunk(
           pageSize: size,
         };
       }
-
       throw new Error("Invalid response format");
     } catch (error) {
-      console.error("❌ Error fetching products:", error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch products",
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch products");
     }
-  },
+  }
 );
 
 export const fetchFeaturedProducts = createAsyncThunk(
@@ -87,7 +85,7 @@ export const fetchFeaturedProducts = createAsyncThunk(
         const timeSinceLastFetch =
           Date.now() - new Date(featuredLastFetch).getTime();
         if (timeSinceLastFetch < CACHE_TIMEOUT) {
-          console.log("✅ Using cached featured products, skipping fetch");
+          console.log("Using cached featured products, skipping fetch");
           return featuredProducts;
         }
       }
@@ -100,7 +98,6 @@ export const fetchFeaturedProducts = createAsyncThunk(
         },
       });
 
-      // Müxtəlif yollarla data çıxarın
       const products =
         data?.data?.content ||
         data?.content ||
@@ -111,7 +108,7 @@ export const fetchFeaturedProducts = createAsyncThunk(
 
       return Array.isArray(products) ? products : [];
     } catch (error) {
-      console.error("❌ Featured products fetch error:", error);
+      console.error("Featured products fetch error:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch featured products",
       );
@@ -136,7 +133,7 @@ export const fetchProductDetails = createAsyncThunk(
 
       throw new Error("Product not found");
     } catch (error) {
-      console.error("❌ Error fetching product details:", error);
+      console.error("Error fetching product details:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch product details",
       );
@@ -153,7 +150,6 @@ export const ensureDetailsForProducts = createAsyncThunk(
       const missing = ids.filter((id) => !cached[id]);
       if (missing.length === 0) return [];
 
-      // 6 paralel batch
       const chunk = (arr, size) =>
         Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
           arr.slice(i * size, i * size + size),
@@ -175,9 +171,9 @@ export const ensureDetailsForProducts = createAsyncThunk(
         results.push(...settled.filter((r) => r.ok));
       }
 
-      return results; // [{id, ok:true, data}]
+      return results;
     } catch (error) {
-      console.error("❌ Error ensuring product details:", error);
+      console.error("Error ensuring product details:", error);
       return rejectWithValue("Failed to fetch product details batch");
     }
   },
@@ -250,7 +246,6 @@ const productSlice = createSlice({
           fromCache,
         } = action.payload;
 
-        // Cache'den geldiyse state'i güncelleme
         if (fromCache) {
           return;
         }
@@ -325,10 +320,8 @@ export default productSlice.reducer;
 
 // Selectors
 export const selectAllProducts = (state) => state.products.products;
-export const selectFeaturedProducts = (state) =>
-  state.products.featuredProducts;
-export const selectProductById = (productId) => (state) =>
-  state.products.productDetails[productId];
+export const selectFeaturedProducts = (state) => state.products.featuredProducts;
+export const selectProductById = (productId) => (state) => state.products.productDetails[productId];
 export const selectProductsLoading = (state) => state.products.loading;
 export const selectFeaturedLoading = (state) => state.products.featuredLoading;
 export const selectProductsError = (state) => state.products.error;
@@ -357,46 +350,4 @@ const getPriceOf = (p) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export const selectFilteredProducts = createSelector(
-  [selectAllProducts, selectFilters, selectProductDetails],
-  (products, filters, productDetails) => {
-    return products.filter((product) => {
-      // Category filter
-      if (filters.category && String(filters.category).trim() !== "") {
-        const cat = getCategoryOf(productDetails, product);
-        if (
-          !cat ||
-          String(cat).toLowerCase() !== String(filters.category).toLowerCase()
-        ) {
-          return false;
-        }
-      }
-
-      // Price filter
-      if (
-        filters.priceRange &&
-        Array.isArray(filters.priceRange) &&
-        filters.priceRange.length === 2
-      ) {
-        const [min, max] = filters.priceRange;
-        const price = getPriceOf(product);
-        if (price < Number(min) || price > Number(max)) {
-          return false;
-        }
-      }
-
-      // Condition filter
-      if (filters.condition && String(filters.condition).trim() !== "") {
-        const cond = getConditionOf(productDetails, product);
-        if (
-          !cond ||
-          String(cond).toLowerCase() !== String(filters.condition).toLowerCase()
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  },
-);
+export const selectFilteredProducts = (state) => state.products.products;

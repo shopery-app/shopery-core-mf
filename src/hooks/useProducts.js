@@ -43,17 +43,17 @@ export const useProducts = () => {
   );
 
   const loadMoreProducts = useCallback(() => {
-    const state = { currentPage, totalPages, pageSize, loading };
-    if (!state.loading && state.currentPage + 1 < state.totalPages) {
-      dispatch(
+    if (!loading && currentPage + 1 < totalPages) {
+      dispatch((
         fetchProducts({
-          page: state.currentPage + 1,
-          size: state.pageSize || 20,
-          sort: "createdAt,desc",
-        }),
-      );
+          page: currentPage + 1,
+          size: pageSize || 20,
+          sort: "createdAt, desc",
+          ...filters,
+        })
+      ))
     }
-  }, [dispatch, loading, currentPage, totalPages, pageSize]);
+  }, [dispatch, loading, currentPage, totalPages, pageSize, filters]);
 
   const refreshProducts = useCallback(() => {
     dispatch(
@@ -65,6 +65,17 @@ export const useProducts = () => {
       }),
     );
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      fetchProducts({
+        page: 0,
+        size: pageSize || 20,
+        sort: "createdAt,desc",
+        ...filters
+      })
+    );
+  }, [dispatch, filters, pageSize]);
 
   const loadFeaturedProducts = useCallback(async () => {
     if (featuredLoadedRef.current) return;
@@ -100,28 +111,14 @@ export const useProducts = () => {
     dispatch(clearErrors());
   }, [dispatch]);
 
-  // Load products and featured products once
   useEffect(() => {
-    // Only load products if we don't have any and not currently loading
-    if (products.length === 0 && !loading) {
-      dispatch(
-        fetchProducts({
-          page: 0,
-          size: pageSize || 20,
-          sort: "createdAt,desc",
-        }),
-      );
-    }
-
-    // Only load featured products once
     if (!featuredLoadedRef.current && !featuredLoading && !featuredAttempted) {
       featuredLoadedRef.current = true;
       setFeaturedAttempted(true);
       dispatch(fetchFeaturedProducts()).catch((err) => {
-        console.error("❌ Failed to load featured products:", err);
+        console.error("Failed to load featured products:", err);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle product details fetching (remove duplicate effect)
