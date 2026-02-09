@@ -453,19 +453,41 @@ const Blogs = memo(() => {
 
         if (response.data.status === "OK" && response.data.data) {
           const pageData = response.data.data;
+          let allBlogs = pageData.content || [];
+
+          if (searchQuery.trim()) {
+            const searchLower = searchQuery.toLowerCase().trim();
+            allBlogs = allBlogs.filter(
+              (blog) =>
+                blog.blogTitle &&
+                blog.blogTitle.toLowerCase().includes(searchLower),
+            );
+          }
+
           const newData = {
-            blogs: pageData.content || [],
-            totalPages: pageData.totalPages || 1,
-            totalElements: pageData.totalElements || 0,
-            currentPage: pageData.pageable?.pageNumber || 0,
+            blogs: allBlogs,
+            totalPages: searchQuery.trim() ? 1 : pageData.totalPages || 1,
+            totalElements: searchQuery.trim()
+              ? allBlogs.length
+              : pageData.totalElements || 0,
+            currentPage: searchQuery.trim()
+              ? 0
+              : pageData.pageable?.pageNumber || 0,
           };
           setBlogsData(newData);
           setSearchState((prev) => ({ ...prev, lastSearchTerm: searchQuery }));
           apiCache.current.set(cacheKey, newData);
+
+          if (apiCache.current.size > 50) {
+            const firstKey = apiCache.current.keys().next().value;
+            apiCache.current.delete(firstKey);
+          }
         }
       } catch (error) {
         console.error("Error fetching blogs:", error);
-        setError("Failed to load blogs.");
+        setError("Failed to load blogs. Please try again.");
+        setBlogsData((prev) => ({ ...prev, blogs: [] }));
+
       } finally {
         setLoadingStates((prev) => ({ ...prev, loading: false, searchLoading: false }));
       }
@@ -490,19 +512,34 @@ const Blogs = memo(() => {
       navigate(`/blogs/${blogId}`);
     }
   }, [navigate, blogs]);
-  const handleSearchChange = (e) => {
-    setSearchState(prev => ({ ...prev, searchTerm: e.target.value }));
-  };
 
-  const handleManualSearch = (e) => {
-    e.preventDefault();
-    fetchBlogs(searchTerm, false);
-  };
+  const handleCreateBlog = useCallback(() => {
+      setModalState((prev) => ({ ...prev, showCreateModal: true }));
+    }, []);
 
-  const handleClearSearch = () => {
-    setSearchState(prev => ({ ...prev, searchTerm: "", lastSearchTerm: "" }));
+  const handleSearchChange = useCallback((e) => {
+     const value = e.target.value;
+     setSearchState((prev) => ({ ...prev, searchTerm: value }));
+   }, []);
+
+  const handleManualSearch = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      setBlogsData((prev) => ({ ...prev, currentPage: 0 }));
+      fetchBlogs(searchTerm, false);
+    },
+    [searchTerm, fetchBlogs]
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchState((prev) => ({ ...prev, searchTerm: "", lastSearchTerm: "" }));
+    setBlogsData((prev) => ({ ...prev, currentPage: 0 }));
+    apiCache.current.clear();
     fetchBlogs("", false);
-  };
+  }, [fetchBlogs]);
   const handleBlogAction = useCallback(async (blogId, actionType, updateData = null) => {
   try {
     let response;
@@ -539,6 +576,57 @@ const Blogs = memo(() => {
     setNotification({ type: "error", message: "Error happening" });
   }
 }, [apiURL]);
+
+  useEffect(() => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+  
+      if (searchTerm === "") {
+        setBlogsData((prev) => ({ ...prev, currentPage: 0 }));
+        fetchBlogs("", false);
+        return;
+      }
+  
+      searchTimeoutRef.current = setTimeout(() => {
+        setBlogsData((prev) => ({ ...prev, currentPage: 0 }));
+        fetchBlogs(searchTerm, false);
+      }, 800);
+  
+      return () => {
+        if (searchTimeoutRef.current) {
+          clearTimeout(searchTimeoutRef.current);
+        }
+      };
+    }, [searchTerm, fetchBlogs]);
+  
+    useEffect(() => {
+      if (notification) {
+        const timer = setTimeout(() => {
+          setNotification(null);
+        }, 5000);
+        return () => clearTimeout(timer);
+      }
+    }, [notification]);
+  
+    if (loading) {
+      return (
+        <Suspense fallback={<LoadingSpinner />}>
+          <Header />
+          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <LoadingSpinner />
+              <p className="mt-6 text-gray-600 font-medium">
+                {loadingUserBlog
+                  ? "Loading your blog data..."
+                  : "Discovering amazing blogs..."}
+              </p>
+            </div>
+          </div>
+          <Footer />
+        </Suspense>
+      );
+    }
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Header />
@@ -610,11 +698,6 @@ const Blogs = memo(() => {
                 </button>
               </form>
             </div>
-
-            <Notification 
-              notification={notification} 
-              onClose={() => setNotification(null)} 
-            />
             
             <div className="flex flex-col lg:flex-row gap-8">
               <FilterSidebar 
@@ -624,19 +707,80 @@ const Blogs = memo(() => {
                 sortDirection={sortDirection}
                 lastSearchTerm={lastSearchTerm}
                 hasMerchantAccess={hasMerchantAccess}
+                onCreateBlog={handleCreateBlog}
                 userOwnedBlog={userOwnedBlog}
                 onSortChange={(field, dir) => setSearchState(prev => ({ ...prev, sortBy: field, sortDirection: dir }))}
-                onCreateBlog={() => setModalState(prev => ({ ...prev, showCreateModal: true }))}
+                
               />
-
-              <div className="flex-1">
-                {loading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
+              <div className="flex-1 min-w-0">
+                {error ? (
+                  <div className="bg-white rounded-2xl shadow-lg p-8 lg:p-12 text-center border border-red-100 transform transition-all duration-300">
+                    <div className="text-red-500 mb-6">
+                      <i className="fa-solid fa-exclamation-triangle text-4xl lg:text-6xl"></i>
+                    </div>
+                    <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4">
+                      Oops! Something went wrong
+                    </h3>
+                    <p className="text-gray-600 mb-8 text-base lg:text-lg">
+                      {error}
+                    </p>
+                    <button
+                      onClick={() => fetchBlogs(lastSearchTerm, false)}
+                      className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <i className="fa-solid fa-refresh mr-2"></i>
+                      Try Again
+                    </button>
                   </div>
-                ) : processedBlogs.length > 0 ? (
+                ) : searchLoading && blogs.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-lg p-12 lg:p-16 text-center transform transition-all duration-300">
+                    <div className="text-emerald-500 mb-8">
+                      <i className="fa-solid fa-search text-6xl lg:text-8xl animate-pulse"></i>
+                    </div>
+                    <h3 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-6">
+                      Searching for blogs...
+                    </h3>
+                    <p className="text-gray-600 text-base lg:text-lg">
+                      Please wait while we find blogs matching {searchTerm}
+                    </p>
+                  </div>
+                ) : blogs.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-lg p-12 lg:p-16 text-center transform transition-all duration-300">
+                    <div className="text-gray-300 mb-8">
+                      <i className="fa-solid fa-store text-6xl lg:text-8xl"></i>
+                    </div>
+                    <h3 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-6">
+                      {lastSearchTerm ? "No blogs found" : "No blogs available"}
+                    </h3>
+                    <p className="text-gray-600 mb-10 max-w-lg mx-auto text-base lg:text-lg leading-relaxed">
+                      {lastSearchTerm
+                        ? `We couldn't find any blogs matching "${lastSearchTerm}". Please try a different search term or browse all blogs.`
+                        : "Be the pioneer! Create the first blog and start your entrepreneurial journey with us."}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      {lastSearchTerm && (
+                        <button
+                          onClick={handleClearSearch}
+                          className="inline-flex items-center bg-gray-600 text-white px-6 lg:px-8 py-3 rounded-xl font-semibold hover:bg-gray-700 transition-all duration-300"
+                        >
+                          <i className="fa-solid fa-times mr-2"></i>
+                          Clear Search
+                        </button>
+                      )}
+                      {hasMerchantAccess && !userOwnedBlog && (
+                        <button
+                          onClick={handleCreateBlog}
+                          className="inline-flex items-center bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-8 lg:px-10 py-3 lg:py-4 rounded-xl font-semibold text-base lg:text-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <i className="fa-solid fa-plus mr-2 lg:mr-3"></i>
+                          Create Your Blog
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
                   <>
-                    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-4 sm:gap-6 lg:gap-8 mb-8 lg:mb-12 transition-all duration-300 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
                       {processedBlogs.map((blog, index) => (
                         <BlogCard 
                           key={blog.id} 
@@ -648,31 +792,17 @@ const Blogs = memo(() => {
                         />
                       ))}
                     </div>
-                    <div className="mt-10">
-                      <PaginationControls 
+
+                    <PaginationControls 
                         currentPage={currentPage}
                         totalPages={totalPages}
                         totalElements={totalElements}
                         blogs={blogs}
                         onPageChange={(page) => setBlogsData(prev => ({ ...prev, currentPage: page }))}
-                      />
-                    </div>
+                    />
                   </>
-                ) : (
-                  
-                    <div className="flex gap-2 mb-4">
-                    <button onClick={() => navigate('/blogs/liked')} className="text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full">
-                      <i className="fa-solid fa-heart mr-1"></i> Like
-                    </button>
-                    <button onClick={() => navigate('/blogs/saved')} className="text-sm text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
-                      <i className="fa-solid fa-bookmark mr-1"></i> Update
-                    </button>
-                  
-                  </div>
                 )}
               </div>
-               
-              
             </div>
           </div>
         </div>
@@ -691,9 +821,7 @@ const Blogs = memo(() => {
         onSubmit={(e) => {
           e.preventDefault();
         }}
-
       />
-      
       <Footer />
     </Suspense>
   );
