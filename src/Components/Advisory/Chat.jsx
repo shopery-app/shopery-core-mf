@@ -9,7 +9,6 @@ export default function Chat() {
   const [loading, setLoading] = useState(false);
   const chatRef = useRef(null);
 
-  // scroll always bottom
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -54,12 +53,10 @@ export default function Chat() {
 
   return (
     <div className="flex h-full flex-col rounded-lg border bg-white">
-      {/* HEADER */}
       <div className="border-b p-4 font-semibold">
         🤖 Merchant Chatbot
       </div>
 
-      {/* MESSAGES */}
       <div
         ref={chatRef}
         className="flex-1 space-y-3 overflow-y-auto p-4"
@@ -88,7 +85,6 @@ export default function Chat() {
         )}
       </div>
 
-      {/* INPUT */}
       <form
         onSubmit={sendMessage}
         className="flex items-center gap-2 border-t p-3"
