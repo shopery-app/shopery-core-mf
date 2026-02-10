@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { RiSendPlane2Fill } from "react-icons/ri";
+import { apiURL } from "../../Backend/Api/api";
 
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -25,7 +26,7 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/v1/chat", {
+      const res = await fetch(`${apiURL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg.text }),

@@ -13,6 +13,7 @@ import { apiURL } from "../../../Backend/Api/api";
 import { hasMerchantAccount } from "../../../utils/roleMode";
 import { isJwtExpired } from "../../../utils/jwt";
 import Chat from "../../Advisory/Chat";
+import ChatPage from "../../Pages/ChatPage";
 
 const Header = lazy(() => import("../../Header"));
 const Footer = lazy(() => import("../../Footer"));
@@ -1569,8 +1570,9 @@ const ShopDashboard = memo(() => {
           )}
         </div>
         <div className="col-span-1 h-[650px]">
-          <Chat />
+          <ChatPage />
         </div>
+
       </div>
 
       <AddProductModal
