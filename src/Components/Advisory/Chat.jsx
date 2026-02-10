@@ -3,7 +3,7 @@ import { RiSendPlane2Fill } from "react-icons/ri";
 
 export default function Chat() {
   const [messages, setMessages] = useState([
-    { sender: "bot", text: "👋 Salam! Necə kömək edə bilərəm?" }
+    { sender: "bot", text: "👋 Hello! How can I help you today?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,82 +27,87 @@ export default function Chat() {
     try {
       const res = await fetch("/api/v1/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg.text }),
       });
-
       const data = await res.json();
-
       const botMsg = {
         sender: "bot",
-        text: data?.data?.message || "Cavab alınmadı 😕",
+        text: data?.data?.message || "No response received 😕",
       };
-
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "Xəta baş verdi ⚠️" },
-      ]);
+      setMessages((prev) => [...prev, { sender: "bot", text: "An error occurred ⚠️" }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg border bg-white">
-      <div className="border-b p-4 font-semibold">
-        🤖 Merchant Chatbot
-      </div>
-
-      <div
-        ref={chatRef}
-        className="flex-1 space-y-3 overflow-y-auto p-4"
-      >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-[75%] rounded-xl px-4 py-2 text-sm ${
-                msg.sender === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100"
-              }`}
-            >
-              {msg.text}
-            </div>
+   
+    <div className="flex w-full justify-center bg-gray-50 pt-10 pb-20 px-4">
+      
+      <div className="flex h-[60vh] min-h-[500px] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-gray-300 bg-white shadow-2xl">
+        
+        <div className="border-b bg-white p-6">
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-3 animate-pulse rounded-full bg-green-500"></div>
+            <h2 className="text-xl font-bold tracking-tight text-gray-800">Merchant Support</h2>
           </div>
-        ))}
+        </div>
 
-        {loading && (
-          <div className="text-sm text-gray-400">Bot yazır...</div>
-        )}
-      </div>
-
-      <form
-        onSubmit={sendMessage}
-        className="flex items-center gap-2 border-t p-3"
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Mesaj yaz..."
-          className="flex-1 rounded-full border px-4 py-2 text-sm focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white"
+        
+        <div
+          ref={chatRef}
+          className="flex-1 space-y-6 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-200"
         >
-          <RiSendPlane2Fill />
-        </button>
-      </form>
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[70%] rounded-2xl px-6 py-4 text-[16px] leading-relaxed shadow-sm ${
+                  msg.sender === "user"
+                    ? "bg-indigo-600 text-white rounded-tr-none"
+                    : "bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200"
+                }`}
+              >
+                {msg.text}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex items-center gap-2 px-2 text-sm font-medium text-gray-400">
+              <span className="flex space-x-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300"></span>
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:0.2s]"></span>
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:0.4s]"></span>
+              </span>
+              Typing...
+            </div>
+          )}
+        </div>
+
+        <div className="border-t bg-white p-6">
+          <form onSubmit={sendMessage} className="relative flex items-center">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Describe your issue here..."
+              className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-5 pl-6 pr-16 text-md transition-all focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50/50"
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="absolute right-3 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg transition-all hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-90 disabled:opacity-40"
+            >
+              <RiSendPlane2Fill className="text-2xl" />
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

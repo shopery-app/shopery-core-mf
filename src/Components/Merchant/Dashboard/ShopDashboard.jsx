@@ -1568,7 +1568,7 @@ const ShopDashboard = memo(() => {
             </div>
           )}
         </div>
-        <div className="col-span-1 h-[600px]">
+        <div className="col-span-1 h-[650px]">
           <Chat />
         </div>
       </div>
