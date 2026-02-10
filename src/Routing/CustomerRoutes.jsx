@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../Components/Routes/ProtectedRoute";
-import Blog from "../Components/Customer/Blog";
+import Blog from "../Components/Blogs/Blogs";
 import Support from "../Components/Customer/Support";
 import Addresses from "../Components/Customer/Addresses";
 import Settings from "../Components/Customer/Settings";

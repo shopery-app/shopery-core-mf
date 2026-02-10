@@ -12,8 +12,11 @@ import MerchantRoutes from "./MerchantRoutes";
 import CustomerRoutes from "./CustomerRoutes";
 import Shops from "../Components/Merchant/Shops";
 import ProtectedRoute from "../Components/Routes/ProtectedRoute";
-import Blogs from "../Components/Merchant/Blogs";
-import BlogDetail from "../Components/Blogs/BlogDetail";
+
+import Blogs from "../Components/Blogs/Blogs";
+import BlogDetail from "../Components/Blogs/BlogDetails";
+import LikedBlogs from "../Components/Blogs/LikedBlogs";
+import SavedBlogs from "../Components/Blogs/SavedBlogs";
 
 import PublicShopDetail from "../Components/Shop/ShopDetail";
 import ShopDashboard from "../Components/Merchant/Dashboard/ShopDashboard";
@@ -57,7 +60,7 @@ const AdminLoginWrapper = () => {
   }
   
   const userToken = localStorage.getItem("accessToken");
-  const merchantToken = localStorage.getItem("merchantAccessToken");
+  const merchantToken = localStorage.getItem("accessToken");
   if (userToken || merchantToken) {
     return <Navigate to="/" replace />;
   }
@@ -109,6 +112,22 @@ const Routing = () => {
 
       <Route path="/blogs" element={<Blogs />} />
       <Route path="/blogs/:blogId" element={<BlogDetail />} />
+      <Route
+        path="/blogs/liked"
+        element={
+          <ProtectedRoute>
+            <LikedBlogs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/blogs/saved"
+        element={
+          <ProtectedRoute>
+            <SavedBlogs />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/merchant/shops/:shopId/dashboard"

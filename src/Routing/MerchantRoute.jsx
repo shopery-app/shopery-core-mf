@@ -2,7 +2,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 
 const MerchantRoute = ({ children }) => {
-  const merchantToken = localStorage.getItem("merchantAccessToken");
+  const merchantToken = localStorage.getItem("accessToken");
 
   if (!merchantToken) {
     return <Navigate to="/" replace />;
