@@ -12,6 +12,7 @@ import axios from "axios";
 import { apiURL } from "../../../Backend/Api/api";
 import { hasMerchantAccount } from "../../../utils/roleMode";
 import { isJwtExpired } from "../../../utils/jwt";
+import Chat from "../../Advisory/Chat";
 
 const Header = lazy(() => import("../../Header"));
 const Footer = lazy(() => import("../../Footer"));
@@ -1566,6 +1567,9 @@ const ShopDashboard = memo(() => {
               </div>
             </div>
           )}
+        </div>
+        <div className="col-span-1 h-[650px]">
+          <Chat />
         </div>
       </div>
 
