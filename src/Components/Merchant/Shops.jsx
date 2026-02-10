@@ -481,7 +481,7 @@ const Shops = memo(() => {
 
   const fetchTiers = useCallback(async () => {
     try {
-      const token = localStorage.getItem("merchantAccessToken");
+      const token = localStorage.getItem("accessToken");
       const response = await axios.get(`${apiURL}/dropdowns/subscription-tiers`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -546,10 +546,10 @@ const Shops = memo(() => {
     try {
       setUserShopData((prev) => ({ ...prev, loadingUserShop: true }));
 
-      const token = localStorage.getItem("merchantAccessToken");
+      const token = localStorage.getItem("accessToken");
 
       if (!token) {
-        console.error("❌ No merchant token found");
+        console.error("No merchant token found");
         setUserShopData((prev) => ({ ...prev, userOwnedShop: null }));
         return;
       }
@@ -598,9 +598,9 @@ const Shops = memo(() => {
       }
     } catch (error) {
       if (error.response?.status === 403) {
-        console.error("🔒 Access denied - check authentication/authorization");
+        console.error("Access denied - check authentication/authorization");
       } else if (error.response?.status === 401) {
-        console.error("🔑 Unauthorized - token may be invalid");
+        console.error("Unauthorized - token may be invalid");
       }
 
       setUserShopData((prev) => ({ ...prev, userOwnedShop: null }));
@@ -614,7 +614,7 @@ const Shops = memo(() => {
       return;
     }
 
-    const token = localStorage.getItem("merchantAccessToken");
+    const token = localStorage.getItem("accessToken");
 
     try {
       const response = await axios.get(`${apiURL}/merchant/products`, {

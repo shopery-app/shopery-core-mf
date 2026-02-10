@@ -235,7 +235,7 @@ const ShopDetail = memo(() => {
 
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
-    const token = localStorage.getItem("merchantAccessToken");
+    const token = localStorage.getItem("accessToken");
     try {
       const response = await axios.get(`${apiURL}/products`, {
         params: {

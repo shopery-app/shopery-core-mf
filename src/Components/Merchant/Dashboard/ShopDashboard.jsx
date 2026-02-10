@@ -274,7 +274,7 @@ const AddProductModal = memo(
     const uploadProductImage = async (productId, file) => {
       try {
         setIsUploading(true);
-        const token = localStorage.getItem("merchantAccessToken");
+        const token = localStorage.getItem("accessToken");
         const formData = new FormData();
         formData.append("image", file);
 
@@ -863,9 +863,9 @@ const ShopDashboard = memo(() => {
   const hasMerchantAccess = hasMerchantAccount();
 
   useEffect(() => {
-    const token = localStorage.getItem("merchantAccessToken");
+    const token = localStorage.getItem("accessToken");
     if (!token || isJwtExpired(token)) {
-      localStorage.removeItem("merchantAccessToken");
+      localStorage.removeItem("accessToken");
       navigate("/signin");
       return;
     }
@@ -892,10 +892,9 @@ const ShopDashboard = memo(() => {
     [navigate],
   );
 
-  // Updated fetchProducts function - just for the list, details will be loaded separately
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
-    const token = localStorage.getItem("merchantAccessToken");
+    const token = localStorage.getItem("accessToken");
     try {
       const response = await axios.get(`${apiURL}/merchant/products`, {
         headers: {
@@ -912,7 +911,6 @@ const ShopDashboard = memo(() => {
       if (response.data.status === "OK" && response.data.data) {
         const productsData = response.data.data.content || [];
 
-        // Clear cache when fetching new products
         productDetailsCache.clear();
 
         setProducts(productsData);
@@ -922,7 +920,7 @@ const ShopDashboard = memo(() => {
     } catch (err) {
       console.error("Error fetching products:", err);
       if (err.response?.status === 401) {
-        localStorage.removeItem("merchantAccessToken");
+        localStorage.removeItem("acessToken");
         navigate("/signin");
       }
       setProducts([]);
@@ -933,7 +931,7 @@ const ShopDashboard = memo(() => {
 
   const handleDeleteProduct = useCallback(
     async (productId) => {
-      const token = localStorage.getItem("merchantAccessToken");
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         navigate("/signin");
         return;
@@ -966,7 +964,7 @@ const ShopDashboard = memo(() => {
       } catch (err) {
         console.error("Error deleting product:", err);
         if (err.response?.status === 401) {
-          localStorage.removeItem("merchantAccessToken");
+          localStorage.removeItem("accessToken");
           navigate("/signin");
         } else if (err.response?.status === 404) {
           setError("Product not found");
@@ -1004,7 +1002,7 @@ const ShopDashboard = memo(() => {
       return;
     }
 
-    const token = localStorage.getItem("merchantAccessToken");
+    const token = localStorage.getItem("accessToken");
 
     if (!token) {
       navigate("/signin");
@@ -1033,7 +1031,7 @@ const ShopDashboard = memo(() => {
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       if (error.response?.status === 401) {
-        localStorage.removeItem("merchantAccessToken");
+        localStorage.removeItem("accessToken");
         navigate("/signin");
       } else if (error.response?.status === 403) {
         setError(
@@ -1092,7 +1090,7 @@ const ShopDashboard = memo(() => {
 
   const addProduct = useCallback(
     async (returnProductId = false) => {
-      const token = localStorage.getItem("merchantAccessToken");
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         navigate("/signin");
         return;
@@ -1184,7 +1182,7 @@ const ShopDashboard = memo(() => {
         }
       } catch (err) {
         if (err.response?.status === 401) {
-          localStorage.removeItem("merchantAccessToken");
+          localStorage.removeItem("accessToken");
           navigate("/signin");
         } else if (err.response?.status === 400) {
           setError(err.response.data.message || "Invalid product data");
@@ -1202,7 +1200,7 @@ const ShopDashboard = memo(() => {
   const updateProduct = useCallback(
     async (productId, productData) => {
       try {
-        const token = localStorage.getItem("merchantAccessToken");
+        const token = localStorage.getItem("accessToken");
         if (!token) {
           navigate("/signin");
           return;
@@ -1285,7 +1283,7 @@ const ShopDashboard = memo(() => {
       } catch (err) {
         console.error("Error updating product:", err);
         if (err.response?.status === 401) {
-          localStorage.removeItem("merchantAccessToken");
+          localStorage.removeItem("accessToken");
           navigate("/signin");
         } else if (err.response?.status === 400) {
           setError(err.response.data.message || "Invalid product data");

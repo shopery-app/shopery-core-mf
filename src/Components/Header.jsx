@@ -100,11 +100,11 @@ const Header = memo(() => {
 
       if (response.data.status === "OK" && response.data.data) {
         localStorage.setItem(
-          "merchantAccessToken",
+          "accessToken",
           response.data.data.accessToken
         );
         localStorage.setItem(
-          "merchantRefreshToken",
+          "refreshToken",
           response.data.data.refreshToken
         );
 

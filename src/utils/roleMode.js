@@ -1,8 +1,8 @@
 import axios from "axios";
 
-export const MODE_KEY = "appMode"; // 'merchant' | 'customer'
-export const MERCHANT_AT_KEY = "merchantAccessToken";
-export const MERCHANT_RT_KEY = "merchantRefreshToken";
+export const MODE_KEY = "appMode";
+export const MERCHANT_AT_KEY = "accessToken";
+export const MERCHANT_RT_KEY = "refreshToken";
 
 export const hasMerchantAccount = () =>
   !!localStorage.getItem(MERCHANT_AT_KEY) &&
