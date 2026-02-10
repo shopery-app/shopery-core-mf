@@ -567,21 +567,54 @@ const EditProductModal = memo(
     handleInputChange,
     formState,
   }) => {
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+      if (open && product?.imageUrl) {
+        setImagePreview(product.imageUrl);
+      }
+      if (!open) {
+        setImageFile(null);
+        setImagePreview(null);
+        setIsSaving(false);
+      }
+    }, [open, product]);
+
+    const handleImageChange = useCallback((e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size > 5*1024*1024) {
+          alert("File size must be less than 5MB!");
+          return;
+        }
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+      }
+    }, []);
+
+    const onSubmit = async (e) => {
+      e.preventDefault();
+      setIsSaving(true);
+      try {
+        await handleEditSubmit(e, imageFile);
+        onClose();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
     if (!open || !product) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-gray-100">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <i className="fa-solid fa-xmark text-xl"></i>
-          </button>
-          <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">
-            Edit Product
-          </h2>
-          <form onSubmit={handleEditSubmit} className="space-y-5">
+          <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600" disabled={isSaving}><i className="fa-solid fa-xmark text-xl"></i></button>
+          <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">Edit Product</h2>
+          <form onSubmit={onSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Name
@@ -625,6 +658,7 @@ const EditProductModal = memo(
                   }}
                   className="w-full border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 >
+                  {/* TODO We can fetch dropdowns instead of hardcoding!*/}
                   <option value="NEW">NEW</option>
                   <option value="USED">USED</option>
                   <option value="REFURBISHED">REFURBISHED</option>
@@ -642,6 +676,7 @@ const EditProductModal = memo(
                   }}
                   className="w-full border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 >
+                  {/* TODO We can fetch dropdowns instead of hardcoding!*/}
                   <option value="ELECTRONICS">ELECTRONICS</option>
                   <option value="FASHION">FASHION</option>
                   <option value="HOME">HOME</option>
@@ -685,11 +720,32 @@ const EditProductModal = memo(
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2 rounded-lg w-full font-semibold shadow hover:from-emerald-700 hover:to-emerald-800 transition-all"
-            >
-              Save Changes
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Update Image</label>
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
+                  <i className="fa-solid fa-camera text-emerald-600"></i>
+                  <span className="text-emerald-700 text-sm font-medium">Change Photo</span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+                {imagePreview && (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button type="submit" disabled={isSaving} className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2 rounded-lg w-full font-semibold shadow hover:from-emerald-700 hover:to-emerald-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              {isSaving ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin mr-2"></i>
+                  Updating...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </form>
         </div>
@@ -1198,7 +1254,7 @@ const ShopDashboard = memo(() => {
   );
 
   const updateProduct = useCallback(
-    async (productId, productData) => {
+    async (productId, productData, imageFile) => {
       try {
         const token = localStorage.getItem("accessToken");
         if (!token) {
@@ -1269,10 +1325,19 @@ const ShopDashboard = memo(() => {
         );
 
         if (response.data.status === "OK" && response.data.data) {
+          if (imageFile) {
+            const formData = new FormData();
+            formData.append("image", imageFile);
+            await axios.post(`${apiURL}/merchant/products/${productId}/image`, formData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data",
+              },
+            });
+          }
           setShowSuccess(true);
           setSuccessMessage("Product updated successfully!");
 
-          // Cache-i təmizlə ki, yenilənmiş məlumatlar gəlsin
           productDetailsCache.delete(productId);
 
           await fetchProducts();
@@ -1282,19 +1347,9 @@ const ShopDashboard = memo(() => {
         }
       } catch (err) {
         console.error("Error updating product:", err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("accessToken");
-          navigate("/signin");
-        } else if (err.response?.status === 400) {
-          setError(err.response.data.message || "Invalid product data");
-        } else if (err.response?.status === 404) {
-          setError("Product not found");
-        } else {
-          setError("Error updating product. Please try again.");
-        }
+        setError(err.response?.data?.message || "Failed to update product"); 
       }
-    },
-    [navigate, fetchProducts, shopData],
+    }, [navigate, fetchProducts, shopData],
   );
 
   const handleAddSubmit = useCallback(
@@ -1307,7 +1362,7 @@ const ShopDashboard = memo(() => {
   );
 
   const handleEditSubmit = useCallback(
-    async (e) => {
+    async (e, imageFile) => {
       e.preventDefault();
       setError("");
 
@@ -1320,7 +1375,7 @@ const ShopDashboard = memo(() => {
         stockQuantity: Number(formState.stockQuantity),
       };
 
-      await updateProduct(editProduct.id, productData);
+      await updateProduct(editProduct.id, productData, imageFile);
     },
     [formState, editProduct, updateProduct],
   );
