@@ -56,3 +56,15 @@
 .animate-delay-4 {
   animation-delay: 1.2s;
 }
+
+
+.scroll-to-top-btn:hover {
+  background-color: #b91c1c !important; 
+  color: white !important; 
+  transform: scale(1.1); 
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-to-top-btn {
+  transition: all 0.3s ease-in-out !important;
+}

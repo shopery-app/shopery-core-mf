@@ -318,6 +318,27 @@ const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity }) => {
 ProductCard.displayName = "ProductCard";
 
 const Home = () => {
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollBtn(true);
+      } else {
+        setShowScrollBtn(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -488,6 +509,33 @@ const Home = () => {
       <motion.div variants={itemVariants}>
         <Footer />
       </motion.div>
+      {showScrollBtn && (
+        <button
+          onClick={scrollToTop}
+          className="scroll-to-top-btn"
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: '50px',
+            height: '50px',
+            backgroundColor: '#ffcccb', 
+            color: '#444',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          ↑
+        </button>
+      )}
     </motion.div>
   );
 };

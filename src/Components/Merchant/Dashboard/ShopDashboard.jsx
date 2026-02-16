@@ -1479,7 +1479,7 @@ const ShopDashboard = memo(() => {
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center mb-4">
+                <div className="flex items-center mb-4 mt-8">
                   <button
                     onClick={handleBackToShops}
                     className="mr-4 p-2 hover:bg-emerald-500 rounded-lg transition-colors"
