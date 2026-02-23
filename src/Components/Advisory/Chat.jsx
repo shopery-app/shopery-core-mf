@@ -26,10 +26,17 @@ export default function Chat() {
     setLoading(true);
 
     try {
+      const token = localStorage.getItem("accessToken");
+
       const res = await fetch(`${apiURL}/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg.text }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: userMsg.text,
+        }),
       });
       const data = await res.json();
       const botMsg = {
