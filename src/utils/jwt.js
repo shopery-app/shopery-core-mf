@@ -1,4 +1,3 @@
-// ...existing code...
 export const parseJwt = (token) => {
   if (!token) return null;
   try {
@@ -28,7 +27,6 @@ export const msUntilExpiry = (token) => {
 };
 
 export const isJwtExpired = (token, skewSeconds = 5) => {
-  // skew buffer: 5s
   return msUntilExpiry(token) <= skewSeconds * 1000;
 };
 

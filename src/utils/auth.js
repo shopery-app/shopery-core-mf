@@ -10,12 +10,10 @@ export const isAuthenticated = () => {
     const accessToken = getAccessToken();
     const refreshToken = getRefreshToken();
 
-    // Əgər access token var və hələ expire olmayıb
     if (accessToken && !isTokenExpired(accessToken)) {
       return true;
     }
 
-    // Əgər access token yoxdur və ya expire olub, amma refresh token var
     if (refreshToken && !isTokenExpired(refreshToken)) {
       return true;
     }
@@ -30,7 +28,6 @@ export const isAuthenticated = () => {
 export const logout = () => {
   clearTokens();
 
-  // Browser history-də həlqə yaratmamaq üçün replace istifadə et
   if (window.location.pathname !== "/signin") {
     window.location.replace("/signin");
   }

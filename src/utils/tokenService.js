@@ -1,8 +1,6 @@
 import axios from "axios";
 import { apiURL } from "../Backend/Api/api";
-import { applyAuthHeaderForMode } from "./roleMode";
 
-// Token utility functions
 export const getAccessToken = () => localStorage.getItem("accessToken");
 export const getRefreshToken = () => localStorage.getItem("refreshToken");
 
@@ -10,7 +8,6 @@ export const setTokens = (accessToken, refreshToken) => {
   localStorage.setItem("accessToken", accessToken);
   localStorage.setItem("refreshToken", refreshToken);
 
-  // Custom event dispatch for same-tab auth state changes
   window.dispatchEvent(new CustomEvent("authStateChanged"));
 };
 
@@ -21,11 +18,9 @@ export const clearTokens = () => {
   localStorage.removeItem("merchantAccessToken");
   localStorage.removeItem("merchantRefreshToken");
 
-  // Custom event dispatch for same-tab auth state changes
   window.dispatchEvent(new CustomEvent("authStateChanged"));
 };
 
-// Token-in expire olub-olmadığını yoxla
 export const isTokenExpired = (token) => {
   if (!token) return true;
 
@@ -33,7 +28,6 @@ export const isTokenExpired = (token) => {
     const payload = JSON.parse(atob(token.split(".")[1]));
     const currentTime = Date.now() / 1000;
 
-    // 30 saniyə əvvəl expire check et (safety margin)
     return payload.exp < currentTime + 30;
   } catch (error) {
     console.error("Error checking token expiry:", error);
@@ -41,7 +35,6 @@ export const isTokenExpired = (token) => {
   }
 };
 
-// Refresh token ilə yeni access token al
 export const refreshAccessToken = async () => {
   try {
     const refreshToken = getRefreshToken();
@@ -51,7 +44,6 @@ export const refreshAccessToken = async () => {
     }
 
 
-    // Try primary endpoint
     const tryRefresh = async (url) => {
       const resp = await axios.post(
         url,
@@ -59,7 +51,6 @@ export const refreshAccessToken = async () => {
         { headers: { "X-Skip-Auth": "1" }, meta: { skipAuth: true } }
       );
 
-      // Accept several shapes: {status:'OK', data:{accessToken, refreshToken}} or {accessToken, refreshToken}
       let at, rt;
       if (resp.data?.data?.accessToken) {
         at = resp.data.data.accessToken;
@@ -70,12 +61,10 @@ export const refreshAccessToken = async () => {
       }
 
       if (!at) {
-        // Some APIs might return 200 without status field
         if (
           !resp.data?.status &&
           (resp.status === 200 || resp.status === 201)
         ) {
-          // still accept if tokens exist
           if (at) {
             // no-op
           }
@@ -84,9 +73,7 @@ export const refreshAccessToken = async () => {
         }
       }
 
-      // Save and update defaults
       setTokens(at, rt);
-      applyAuthHeaderForMode();
       return at;
     };
 
@@ -97,16 +84,13 @@ export const refreshAccessToken = async () => {
         "Primary refresh endpoint failed, trying fallback /auth-refresh",
         e1?.message
       );
-      // Fallback alternate path if backend uses different route
       return await tryRefresh(`${apiURL}/auth-refresh`);
     }
   } catch (error) {
     console.error("❌ Token refresh failed:", error);
 
-    // Refresh fail olsa logout et
     clearTokens();
 
-    // Browser history-də həlqə yaratmamaq üçün replace istifadə et
     if (window.location.pathname !== "/signin") {
       window.location.replace("/signin");
     }

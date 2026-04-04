@@ -1,6 +1,8 @@
 import React from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import PublicRoute from "../Components/Routes/PublicRoute";
+import ProtectedRoute from "../Components/Routes/ProtectedRoute";
+
 import Home from "../Components/Home";
 import NotFound from "../Components/NotFound";
 import Login from "../Components/Auth/Login";
@@ -8,158 +10,188 @@ import Register from "../Components/Auth/Register";
 import ConfirmEmail from "../Components/Auth/ConfirmEmail";
 import ForgotPassword from "../Components/Auth/ForgotPassword";
 import ResetPassword from "../Components/Auth/ResetPassword";
-import MerchantRoutes from "./MerchantRoutes";
-import CustomerRoutes from "./CustomerRoutes";
+
 import Shops from "../Components/Merchant/Shops";
-import ProtectedRoute from "../Components/Routes/ProtectedRoute";
+import PublicShopDetail from "../Components/Shop/ShopDetail";
+import ShopDashboard from "../Components/Merchant/Dashboard/ShopDashboard";
+
+import ProfileDashboard from "../Components/Customer/ProfileDashboard";
+import Addresses from "../Components/Customer/Addresses";
+import Settings from "../Components/Customer/Settings";
+import Support from "../Components/Customer/Support";
+
+import Products from "../Components/Products/Products";
+import CategoryProducts from "../Components/Products/CategoryProducts";
+import CartDisplay from "../Components/Cart/CartDisplay";
 
 import Blogs from "../Components/Blogs/Blogs";
 import BlogDetail from "../Components/Blogs/BlogDetails";
 import LikedBlogs from "../Components/Blogs/LikedBlogs";
 import SavedBlogs from "../Components/Blogs/SavedBlogs";
 
-import PublicShopDetail from "../Components/Shop/ShopDetail";
-import ShopDashboard from "../Components/Merchant/Dashboard/ShopDashboard";
-import ProfileDashboard from "../Components/Customer/ProfileDashboard";
-import Products from "../Components/Products/Products";
-import CategoryProducts from "../Components/Products/CategoryProducts";
-import CartDisplay from "../Components/Cart/CartDisplay";
-
 import AdminLogin from "../Components/Admin/AdminLogin";
 import AdminDashboard from "../Components/Admin/AdminDashboard";
 
+// ─── Admin guard ─────────────────────────────────────────────────────────────
+
 const AdminProtectedRoute = ({ children }) => {
-  const adminAccessToken = localStorage.getItem("adminAccessToken");
-  const adminUserStr = localStorage.getItem("adminUser");
+    const adminAccessToken = localStorage.getItem("adminAccessToken");
+    const adminUserStr = localStorage.getItem("adminUser");
 
-  if (!adminAccessToken || !adminUserStr) {
-    return <Navigate to="/admins" replace />;
-  }
-
-  try {
-    const user = JSON.parse(adminUserStr);
-    const hasAdmin = user.authorities?.some(auth => auth === "ADMIN" || auth.authority === "ADMIN");
-
-    if (!hasAdmin) {
-      localStorage.removeItem("adminAccessToken");
-      localStorage.removeItem("adminUser");
-      return <Navigate to="/admins" replace />;
+    if (!adminAccessToken || !adminUserStr) {
+        return <Navigate to="/admins" replace />;
     }
 
-    return children;
-  } catch (error) {
-    return <Navigate to="/admins" replace />;
-  }
+    try {
+        const user = JSON.parse(adminUserStr);
+        const hasAdmin = user.authorities?.some(
+            (auth) => auth === "ADMIN" || auth.authority === "ADMIN"
+        );
+        if (!hasAdmin) {
+            localStorage.removeItem("adminAccessToken");
+            localStorage.removeItem("adminUser");
+            return <Navigate to="/admins" replace />;
+        }
+        return children;
+    } catch {
+        return <Navigate to="/admins" replace />;
+    }
 };
 
 const AdminLoginWrapper = () => {
-  const adminToken = localStorage.getItem("adminAccessToken");
-  
-  if (adminToken) {
-    return <Navigate to="/admins/dashboard" replace />;
-  }
-  
-  const userToken = localStorage.getItem("accessToken");
-  const merchantToken = localStorage.getItem("accessToken");
-  if (userToken || merchantToken) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return <AdminLogin />;
+    if (localStorage.getItem("adminAccessToken")) {
+        return <Navigate to="/admins/dashboard" replace />;
+    }
+    return <AdminLogin />;
 };
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
 const Routing = () => {
-  return (
-    <Routes>
-      <Route path="/admins" element={<AdminLoginWrapper />} />
-      <Route
-        path="/admins/dashboard"
-        element={
-          <AdminProtectedRoute>
-            <AdminDashboard />
-          </AdminProtectedRoute>
-        }
-      />
+    return (
+        <Routes>
+            {/* ── Admin ── */}
+            <Route path="/admins" element={<AdminLoginWrapper />} />
+            <Route
+                path="/admins/dashboard"
+                element={
+                    <AdminProtectedRoute>
+                        <AdminDashboard />
+                    </AdminProtectedRoute>
+                }
+            />
 
-      <Route path="/" element={<Home />} />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signin"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        }
-      />
+            {/* ── Public ── */}
+            <Route path="/" element={<Home />} />
+            <Route
+                path="/register"
+                element={
+                    <PublicRoute>
+                        <Register />
+                    </PublicRoute>
+                }
+            />
+            <Route
+                path="/signin"
+                element={
+                    <PublicRoute>
+                        <Login />
+                    </PublicRoute>
+                }
+            />
+            <Route
+                path="/forgot-password"
+                element={
+                    <PublicRoute>
+                        <ForgotPassword />
+                    </PublicRoute>
+                }
+            />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
 
-      <Route path="/shops" element={<Shops />} />
-      <Route path="/shop/:shopId" element={<PublicShopDetail />} />
+            {/* ── Products & Categories ── */}
+            <Route path="/products" element={<Products />} />
+            <Route path="/category/:categorySlug" element={<CategoryProducts />} />
+            <Route path="/cart" element={<CartDisplay />} />
 
-      <Route path="/blogs" element={<Blogs />} />
-      <Route path="/blogs/:blogId" element={<BlogDetail />} />
-      <Route
-        path="/blogs/liked"
-        element={
-          <ProtectedRoute>
-            <LikedBlogs />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/blogs/saved"
-        element={
-          <ProtectedRoute>
-            <SavedBlogs />
-          </ProtectedRoute>
-        }
-      />
+            {/* ── Shops (public listing + detail) ── */}
+            <Route path="/shops" element={<Shops />} />
+            <Route path="/shop/:shopId" element={<PublicShopDetail />} />
 
-      <Route
-        path="/merchant/shops/:shopId/dashboard"
-        element={<ShopDashboard />}
-      />
+            {/* ── Shop Dashboard (protected — only ACTIVE shop owners reach it,
+              the component itself redirects others to /profile) ── */}
+            <Route
+                path="/shop/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <ShopDashboard />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route path="/category/:categorySlug" element={<CategoryProducts />} />
+            {/* ── User Profile ── */}
+            <Route
+                path="/profile"
+                element={
+                    <ProtectedRoute>
+                        <ProfileDashboard />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/profile/addresses"
+                element={
+                    <ProtectedRoute>
+                        <Addresses />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/profile/settings"
+                element={
+                    <ProtectedRoute>
+                        <Settings />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/profile/support"
+                element={
+                    <ProtectedRoute>
+                        <Support />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <ProfileDashboard />
-          </ProtectedRoute>
-        }
-      />
+            {/* ── Blogs ── */}
+            <Route path="/blogs" element={<Blogs />} />
+            <Route path="/blogs/:blogId" element={<BlogDetail />} />
+            <Route
+                path="/blogs/liked"
+                element={
+                    <ProtectedRoute>
+                        <LikedBlogs />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/blogs/saved"
+                element={
+                    <ProtectedRoute>
+                        <SavedBlogs />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route path="/cart" element={<CartDisplay />} />
+            {/* ── Legacy redirects so old links don't 404 ── */}
+            <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
+            <Route path="/merchant/shops/:shopId/dashboard" element={<Navigate to="/shop/dashboard" replace />} />
 
-      <Route path="/products" element={<Products />} />
-      <Route path="/merchant/dashboard" element={<ShopDashboard />} />
-
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/confirm-email" element={<ConfirmEmail />} />
-
-      <Route path="/merchant/*" element={<MerchantRoutes />} />
-
-      <Route path="/customer/*" element={<CustomerRoutes />} />
-
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+            {/* ── 404 ── */}
+            <Route path="*" element={<NotFound />} />
+        </Routes>
+    );
 };
 
 export default Routing;

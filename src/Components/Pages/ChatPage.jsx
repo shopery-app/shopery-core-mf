@@ -11,7 +11,7 @@ export default function ChatPage() {
   
   useEffect(() => {
   axios
-    .get(`${apiURL}/merchant/shops/dashboard`)
+    .get(`${apiURL}/users/me/shops/dashboard`)
     .then(res => setShop(res.data.data))
     .catch(err => {
       console.error("DASHBOARD ERROR:", err);

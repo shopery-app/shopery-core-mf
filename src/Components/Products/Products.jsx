@@ -3,7 +3,6 @@ import { useProducts } from "../../hooks/useProducts";
 import { useCart } from "../../hooks/useCart";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
-import { filter } from "framer-motion/client";
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
