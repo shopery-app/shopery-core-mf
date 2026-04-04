@@ -29,11 +29,3 @@ export const msUntilExpiry = (token) => {
 export const isJwtExpired = (token, skewSeconds = 5) => {
   return msUntilExpiry(token) <= skewSeconds * 1000;
 };
-
-export const formatTimeLeft = (ms) => {
-  if (ms <= 0) return "expired";
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const remS = s % 60;
-  return `${m}m ${remS}s`;
-};

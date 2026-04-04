@@ -7,7 +7,6 @@ import { apiURL } from "../../Backend/Api/api";
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const authenticated = isAuthenticated();
-  // Note: we avoid keeping separate user state to prevent unused variables and loops
   const [loading, setLoading] = useState(true);
 
   const fetchUserProfile = async () => {
@@ -27,7 +26,6 @@ const ProtectedRoute = ({ children }) => {
       });
     } catch (error) {
       console.error("Error fetching user profile in ProtectedRoute:", error);
-      // setUser(null);
     } finally {
       setLoading(false);
     }
@@ -55,10 +53,6 @@ const ProtectedRoute = ({ children }) => {
   if (!authenticated) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
-
-  // Don't immediately redirect if profile is null; allow page to render for
-  // cases where profile is not strictly required. Components can fetch as needed.
-  // This prevents redirect loops on home or other public pages embedding ProtectedRoute.
 
   return children;
 };

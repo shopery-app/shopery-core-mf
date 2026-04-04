@@ -14,11 +14,7 @@ export const isAuthenticated = () => {
       return true;
     }
 
-    if (refreshToken && !isTokenExpired(refreshToken)) {
-      return true;
-    }
-
-    return false;
+    return !!(refreshToken && !isTokenExpired(refreshToken));
   } catch (error) {
     console.error("Auth check error:", error);
     return false;

@@ -1,22 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-
 import { apiURL } from "../../Backend/Api/api";
 
-export const addProductToCart = createAsyncThunk(
-  "cart/addProductToCart",
+export const addProductToCart = createAsyncThunk("cart/addProductToCart",
   async (
     { productId, quantity = 1, productData = null },
     { dispatch, rejectWithValue },
   ) => {
     try {
-      const url = `${apiURL}/users/me/cart/${productId}`; // əgər API başqa cürdürsə burada düzəlt
+      const url = `${apiURL}/users/me/cart/${productId}`;
       const { data } = await axios.post(url, { quantity });
-      // Backend uğurlu olarsa UI-da local-a ehtiyac yoxdur
       return { ok: true, data };
     } catch (err) {
       const status = err?.response?.status;
-      // Auth və ya conflict → local-a fallback
       if (status === 401 || status === 403 || status === 409) {
         dispatch(
           addToLocalCart({
@@ -25,7 +21,6 @@ export const addProductToCart = createAsyncThunk(
             productData: productData || null,
           }),
         );
-        // UI-ya uğurlu kimi bildirmək üçün xüsusi bayraq
         return { ok: false, fallbackToLocal: true };
       }
       return rejectWithValue(err?.response?.data || "Cart add failed");
@@ -33,16 +28,15 @@ export const addProductToCart = createAsyncThunk(
   },
 );
 
-export const fetchCart = createAsyncThunk(
-  "cart/fetchCart",
-  async (_, { rejectWithValue }) => {
+export const fetchCart = createAsyncThunk("cart/fetchCart",
+  async () => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
         return { item: [], totalPrice: 0, isLocal: true };
       }
 
-      const response = await axios.get(`${apiUrl}/users/me/cart`, {
+      const response = await axios.get(`${apiURL}/users/me/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -60,7 +54,6 @@ export const fetchCart = createAsyncThunk(
     } catch (error) {
       console.error("❌ Error fetching cart:", error);
 
-      // Backend error-sa, local cart istifadə et
       return { items: [], totalPrice: 0, isLocal: true };
     }
   },
@@ -167,16 +160,14 @@ const cartSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // ...other reducers if needed...
   },
   extraReducers: (builder) => {
     builder
       .addCase(addProductToCart.pending, (state) => {
         state.loading = true;
       })
-      .addCase(addProductToCart.fulfilled, (state, action) => {
+      .addCase(addProductToCart.fulfilled, (state) => {
         state.loading = false;
-        // Backend cart update (opsional)
       })
       .addCase(addProductToCart.rejected, (state, action) => {
         state.loading = false;
@@ -190,11 +181,8 @@ export const {
   removeFromLocalCart,
   updateLocalCartQuantity,
   clearLocalCart,
-  setCartMode,
-  mergeLocalCartToBackend,
   cacheProductDetails,
   clearError,
-  recalculateLocalTotal,
   showCartSuccess,
   hideCartSuccess,
   toggleCartSidebar,
@@ -227,8 +215,7 @@ export const selectCartItemCount = (state) =>
 export const selectCartLoading = (state) => Boolean(state.cart?.loading);
 export const selectCartError = (state) => state.cart?.error || null;
 export const selectIsCartOpen = (state) => Boolean(state.cart?.isCartOpen);
-export const selectShowSuccessMessage = (state) =>
-  Boolean(state.cart?.showSuccess);
+export const selectShowSuccessMessage = (state) => Boolean(state.cart?.showSuccess);
 export const selectLastAddedItem = (state) => state.cart?.lastAddedItem || null;
 
 export default cartSlice.reducer;
