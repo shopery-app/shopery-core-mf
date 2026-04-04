@@ -12,6 +12,7 @@ import axios from "axios";
 import { apiURL } from "../../../Backend/Api/api";
 import { isJwtExpired } from "../../../utils/jwt";
 import useUserShop from "../../../hooks/useUserShop";
+import Chat from "../../Advisory/Chat";
 
 const Header = lazy(() => import("../../Header"));
 const Footer = lazy(() => import("../../Footer"));
@@ -486,7 +487,7 @@ const ShopDashboard = memo(() => {
 
   // Get the user's shop from the hook — no useParams needed.
   // The dashboard always belongs to the logged-in user's own shop.
-  const { shop, shopStatus, loading: shopLoading } = useUserShop();
+  const { profile, shopStatus, loading: shopLoading } = useUserShop();
 
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -801,6 +802,16 @@ const ShopDashboard = memo(() => {
               <div className="lg:col-span-2">
                 <RecentOrders />
               </div>
+            </div>
+
+            {/* ─── THE CHAT SECTION (NOW ALWAYS VISIBLE BUT CONDITIONALLY LOCKED) ─── */}
+            <div className="mb-12">
+              <Chat
+                  isLocked={shopData?.subscriptionTier !== "PREMIUM"}
+                  onUpgrade={() => navigate("/pricing")}
+                  userImage={profile?.profilePhotoUrl}
+                  userName={profile?.firstName || "Merchant"}
+              />
             </div>
 
             <ProductsSection
