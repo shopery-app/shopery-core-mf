@@ -257,20 +257,8 @@ const Shops = memo(() => {
   // ── Fetch shops ──────────────────────────────────────────────────────────
   const fetchShops = useCallback(
       async (searchQuery = "", showLoader = true) => {
-        const cacheKey = JSON.stringify({ searchQuery, page: currentPage, size: pageSize, sort: `${sortBy},${sortDirection}` });
-        if (apiCache.current.has(cacheKey)) {
-          setShopsData(apiCache.current.get(cacheKey));
-          return;
-        }
-
         try {
-          setLoadingStates((prev) => ({
-            ...prev,
-            loading: showLoader,
-            searchLoading: !showLoader,
-          }));
-          setError("");
-
+          setLoadingStates((prev) => ({ ...prev, loading: showLoader, searchLoading: !showLoader }));
           const params = {
             page: currentPage,
             size: pageSize,
@@ -278,45 +266,26 @@ const Shops = memo(() => {
           };
           if (searchQuery.trim()) params.shopName = searchQuery.trim();
 
-          const response = await axios.get(`${apiURL}/shops`, {
-            params,
-            headers: { "Content-Type": "application/json" },
-          });
+          const response = await axios.get(`${apiURL}/shops`, { params });
 
-          if (response.data.status === "OK" && response.data.data) {
-            const pageData = response.data.data;
-            let allShops = pageData.content || [];
+          const pageData = response.data?.data ?? response.data;
 
-            if (searchQuery.trim()) {
-              const lower = searchQuery.toLowerCase().trim();
-              allShops = allShops.filter(
-                  (s) => s.shopName?.toLowerCase().includes(lower),
-              );
-            }
-
-            const newData = {
-              shops: allShops,
-              totalPages: searchQuery.trim() ? 1 : pageData.totalPages || 1,
-              totalElements: searchQuery.trim() ? allShops.length : pageData.totalElements || 0,
-              currentPage: searchQuery.trim() ? 0 : pageData.pageable?.pageNumber || 0,
-            };
-
-            setShopsData(newData);
+          if (pageData && pageData.content) {
+            setShopsData({
+              shops: pageData.content,
+              totalPages: pageData.totalPages || 1,
+              totalElements: pageData.totalElements || 0,
+              currentPage: pageData.number || 0,
+            });
             setSearchState((prev) => ({ ...prev, lastSearchTerm: searchQuery }));
-            apiCache.current.set(cacheKey, newData);
-            if (apiCache.current.size > 50) {
-              apiCache.current.delete(apiCache.current.keys().next().value);
-            }
           }
         } catch (err) {
-          console.error("Error fetching shops:", err);
-          setError("Failed to load shops. Please try again.");
-          setShopsData((prev) => ({ ...prev, shops: [] }));
+          setError("Failed to load shops.");
         } finally {
           setLoadingStates({ loading: false, searchLoading: false });
         }
       },
-      [currentPage, sortBy, sortDirection],
+      [currentPage, sortBy, sortDirection]
   );
 
   // ── Handlers ─────────────────────────────────────────────────────────────

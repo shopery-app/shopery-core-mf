@@ -555,15 +555,16 @@ const ShopDashboard = memo(() => {
       const res = await axios.get(`${apiURL}/users/me/shops/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data.status === "OK" && res.data.data) {
-        setShopData(res.data.data);
+
+      const dashData = res.data?.data ?? res.data;
+      if (dashData) {
+        setShopData(dashData);
       } else {
         setError("No shop data found");
       }
     } catch (err) {
-      if (err.response?.status === 401) { localStorage.removeItem("accessToken"); navigate("/signin"); }
-      else if (err.response?.status === 403) setError("Access denied.");
-      else setError("Failed to load dashboard data.");
+      if (err.response?.status === 401) { navigate("/signin"); }
+      else setError("Failed to load dashboard data. Access denied.");
     } finally {
       setLoading(false);
     }

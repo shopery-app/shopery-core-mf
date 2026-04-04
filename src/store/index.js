@@ -15,7 +15,6 @@ import cartReducer from "./reducers/cartReducer";
 import userReducer from "./reducers/userReducer";
 import productReducer from "./reducers/productReducer";
 
-// Yalnız cart slice-ı üçün persist
 const cartPersistConfig = {
   key: "cart",
   storage,
@@ -33,13 +32,13 @@ const cartPersistConfig = {
 const rootPersistConfig = {
   key: "shopery-root",
   storage,
-  whitelist: ["cart", "user"], // root səviyyəsində yalnız slice adları
+  whitelist: ["cart", "user"],
 };
 
 const rootReducer = combineReducers({
   cart: persistReducer(cartPersistConfig, cartReducer),
   user: userReducer,
-  products: productReducer, // persist olunmur
+  products: productReducer,
 });
 
 const persistedReducer = persistReducer(rootPersistConfig, rootReducer);

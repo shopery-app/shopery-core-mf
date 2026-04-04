@@ -8,6 +8,7 @@ import { Navigate } from "react-router-dom";
 import { apiURL } from "../../Backend/Api/api";
 import axios from "axios";
 import useUserShop from "../../hooks/useUserShop";
+import CreateShopModal from "../Modals/CreateShopModal.jsx";
 
 const initialState = {
   firstName: "",
@@ -54,7 +55,8 @@ const ProfileDashboard = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   // Track whether profile update is in progress separately from initial load
   const [updating, setUpdating] = useState(false);
-  const { shopStatus, loading: shopLoading } = useUserShop();
+  const [showCreateShopModal, setShowCreateShopModal] = useState(false);
+  const { shopStatus, loading: shopLoading, refetch } = useUserShop();
 
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
@@ -608,21 +610,7 @@ const ProfileDashboard = () => {
                               Turn your passion into profit. Open a shop and start selling today.
                             </p>
                             <button
-                                onClick={async () => {
-                                  try {
-                                    const token = localStorage.getItem("accessToken");
-                                    await axios.post(
-                                        `${apiURL}/users/me/shop`,
-                                        {},
-                                        { headers: { Authorization: `Bearer ${token}` } }
-                                    );
-                                    showSuccess("Shop request submitted! Awaiting admin approval.");
-                                  } catch (err) {
-                                    showError(
-                                        err.response?.data?.message || "Failed to submit shop request."
-                                    );
-                                  }
-                                }}
+                                onClick={() => setShowCreateShopModal(true)}
                                 className="bg-emerald-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center gap-2"
                             >
                               <i className="fa-solid fa-rocket" />
@@ -866,6 +854,17 @@ const ProfileDashboard = () => {
                 </div>
               </div>
             </div>
+        )}
+
+        {showCreateShopModal && (
+            <CreateShopModal
+                onClose={() => setShowCreateShopModal(false)}
+                onSuccess={() => {
+                  setShowCreateShopModal(false);
+                  refetch();
+                  showSuccess("Shop request submitted! Awaiting admin approval.");
+                }}
+            />
         )}
 
         <Footer />
