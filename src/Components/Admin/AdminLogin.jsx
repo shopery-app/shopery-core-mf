@@ -91,7 +91,7 @@ const AdminLogin = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                placeholder="name@shopery.com"
+                placeholder="name@shopery.az"
                 disabled={loading}
               />
             </div>
