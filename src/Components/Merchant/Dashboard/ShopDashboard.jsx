@@ -19,8 +19,6 @@ const Footer = lazy(() => import("../../Footer"));
 
 const productDetailsCache = new Map();
 
-// ─── Shared small components ─────────────────────────────────────────────────
-
 const LoadingSpinner = memo(() => (
     <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-emerald-500 mx-auto" />
 ));
@@ -38,8 +36,6 @@ const SuccessToast = memo(({ message, onClose }) => (
     </div>
 ));
 SuccessToast.displayName = "SuccessToast";
-
-// ─── Quick Actions ───────────────────────────────────────────────────────────
 
 const QuickActions = memo(({ onAction }) => (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
@@ -68,8 +64,6 @@ const QuickActions = memo(({ onAction }) => (
 ));
 QuickActions.displayName = "QuickActions";
 
-// ─── Recent Orders placeholder ───────────────────────────────────────────────
-
 const RecentOrders = memo(() => (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -85,15 +79,14 @@ const RecentOrders = memo(() => (
 ));
 RecentOrders.displayName = "RecentOrders";
 
-// ─── Product Details fetcher ─────────────────────────────────────────────────
-
 const fetchProductDetails = async (productId) => {
   if (productDetailsCache.has(productId)) return productDetailsCache.get(productId);
   try {
     const res = await axios.get(`${apiURL}/products/${productId}`);
-    if (res.data.status === "OK" && res.data.data) {
-      productDetailsCache.set(productId, res.data.data);
-      return res.data.data;
+    const data = res.data?.data ?? res.data;
+    if (data && data.id) {
+      productDetailsCache.set(productId, data);
+      return data;
     }
     return null;
   } catch {
@@ -101,20 +94,31 @@ const fetchProductDetails = async (productId) => {
   }
 };
 
-// ─── Product Card ────────────────────────────────────────────────────────────
-
 const ProductCard = memo(({ product, showEditModal, onDelete }) => {
   const [detail, setDetail] = useState(product);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    if (loaded || loading) return;
-    setLoading(true);
-    fetchProductDetails(product.id)
-        .then((d) => { if (d) { setDetail((p) => ({ ...p, ...d })); setLoaded(true); } })
-        .finally(() => setLoading(false));
-  }, [product.id, loaded, loading]);
+    // Only fetch extra details if fields are missing
+    const needsDetails = !product.category || product.stockQuantity === undefined || product.condition === undefined;
+    if (!needsDetails) return;
+
+    // Check cache first
+    if (productDetailsCache.has(product.id)) {
+      setDetail((p) => ({ ...p, ...productDetailsCache.get(product.id) }));
+      return;
+    }
+
+    let cancelled = false;
+    setDetailLoading(true);
+    fetchProductDetails(product.id).then((d) => {
+      if (!cancelled && d) setDetail((p) => ({ ...p, ...d }));
+    }).finally(() => {
+      if (!cancelled) setDetailLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [product.id]); // only product.id — never loading state
 
   const price = detail.discountDto?.currentPrice ?? detail.currentPrice ?? detail.price ?? "0.00";
 
@@ -127,33 +131,30 @@ const ProductCard = memo(({ product, showEditModal, onDelete }) => {
               <i className="fa-solid fa-image text-3xl text-gray-400" />
           )}
         </div>
-
         <div className="flex items-center gap-2">
           <i className="fa-solid fa-cube text-emerald-500" />
           <span className="font-semibold text-gray-800 truncate">{detail.productName}</span>
         </div>
-
         <p className="text-gray-600 text-sm line-clamp-2">{detail.description}</p>
-
         <div className="flex justify-between items-center mt-2">
           <span className="text-emerald-700 font-bold text-lg">${price}</span>
           <span className="text-xs bg-gray-100 rounded-full px-2 py-1 font-medium">
-          {loading ? <i className="fa-solid fa-spinner fa-spin text-gray-400" /> : (detail.category || "N/A")}
-        </span>
+            {detailLoading ? <i className="fa-solid fa-spinner fa-spin text-gray-400" /> : (detail.category || "N/A")}
+          </span>
         </div>
-
         <div className="flex justify-between items-center text-xs text-gray-500">
-          <span>Stock: {loading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.stockQuantity ?? "N/A")}</span>
+          <span>
+            Stock: {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.stockQuantity ?? "N/A")}
+          </span>
           <span className={`px-2 py-1 rounded-full ${
               detail.condition === "NEW" ? "bg-green-100 text-green-800"
                   : detail.condition === "USED" ? "bg-yellow-100 text-yellow-800"
                       : detail.condition === "REFURBISHED" ? "bg-blue-100 text-blue-800"
                           : "bg-gray-100 text-gray-800"
           }`}>
-          {loading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.condition || "N/A")}
-        </span>
+            {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.condition || "N/A")}
+          </span>
         </div>
-
         <div className="flex gap-2 mt-3">
           <button
               onClick={() => showEditModal(detail)}
@@ -173,8 +174,6 @@ const ProductCard = memo(({ product, showEditModal, onDelete }) => {
   );
 });
 ProductCard.displayName = "ProductCard";
-
-// ─── Products Section ────────────────────────────────────────────────────────
 
 const ProductsSection = memo(({ products, showEditModal, isLoading, onDelete }) => {
   const inner = isLoading ? (
@@ -205,15 +204,20 @@ const ProductsSection = memo(({ products, showEditModal, isLoading, onDelete }) 
 });
 ProductsSection.displayName = "ProductsSection";
 
-// ─── Add Product Modal ───────────────────────────────────────────────────────
-
 const AddProductModal = memo(({ open, onClose, formState, handleInputChange, handleAddSubmit }) => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => { if (!open) { setImageFile(null); setImagePreview(null); } }, [open]);
+  useEffect(() => {
+    if (!open) {
+      setImageFile(null);
+      setImagePreview(null);
+      setError("");
+    }
+  }, [open]);
+
   useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
 
   const handleImageChange = useCallback((e) => {
@@ -226,32 +230,31 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
   }, []);
 
   const uploadImage = async (productId, file) => {
-    setIsUploading(true);
-    try {
-      const token = localStorage.getItem("accessToken");
-      const fd = new FormData();
-      fd.append("image", file);
-      await axios.post(`${apiURL}/users/me/products/${productId}/image`, fd, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-      });
-      productDetailsCache.delete(productId);
-    } catch {
-      setError("Failed to upload image.");
-    } finally {
-      setIsUploading(false);
-    }
+    const token = localStorage.getItem("accessToken");
+    const fd = new FormData();
+    fd.append("image", file);
+    await axios.post(`${apiURL}/users/me/products/${productId}/image`, fd, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+    });
+    productDetailsCache.delete(productId);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsUploading(true);
     try {
-      const result = await handleAddSubmit(e, true);
-      if (result?.productId && imageFile) await uploadImage(result.productId, imageFile);
+      const result = await handleAddSubmit();
+      if (result?.productId && imageFile) {
+        await uploadImage(result.productId, imageFile);
+      }
       setImageFile(null);
       setImagePreview(null);
       onClose();
     } catch {
       setError("Failed to add product. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -265,9 +268,7 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
           </button>
           <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">Add New Product</h2>
           {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-                {error}
-              </div>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -321,7 +322,7 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
               </div>
             </div>
             <button type="submit" disabled={isUploading} className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2 rounded-lg font-semibold hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50">
-              {isUploading ? <><i className="fa-solid fa-spinner fa-spin mr-2" />Uploading...</> : "Add Product"}
+              {isUploading ? <><i className="fa-solid fa-spinner fa-spin mr-2" />Saving...</> : "Add Product"}
             </button>
           </form>
         </div>
@@ -329,8 +330,6 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
   );
 });
 AddProductModal.displayName = "AddProductModal";
-
-// ─── Edit Product Modal ──────────────────────────────────────────────────────
 
 const EditProductModal = memo(({ open, product, onClose, formState, handleInputChange, handleEditSubmit }) => {
   const [imageFile, setImageFile] = useState(null);
@@ -423,8 +422,6 @@ const EditProductModal = memo(({ open, product, onClose, formState, handleInputC
 });
 EditProductModal.displayName = "EditProductModal";
 
-// ─── Delete Confirm Modal ────────────────────────────────────────────────────
-
 const DeleteConfirmModal = memo(({ open, productName, onConfirm, onCancel, isDeleting }) => {
   if (!open) return null;
   return (
@@ -453,8 +450,6 @@ const DeleteConfirmModal = memo(({ open, productName, onConfirm, onCancel, isDel
 });
 DeleteConfirmModal.displayName = "DeleteConfirmModal";
 
-// ─── Form Reducer ────────────────────────────────────────────────────────────
-
 const initialFormState = {
   productName: "", description: "", condition: "NEW",
   category: "ELECTRONICS", price: "", stockQuantity: "",
@@ -480,13 +475,8 @@ const formReducer = (state, action) => {
   }
 };
 
-// ─── Main Dashboard ──────────────────────────────────────────────────────────
-
 const ShopDashboard = memo(() => {
   const navigate = useNavigate();
-
-  // Get the user's shop from the hook — no useParams needed.
-  // The dashboard always belongs to the logged-in user's own shop.
   const { profile, shopStatus, loading: shopLoading } = useUserShop();
 
   const [products, setProducts] = useState([]);
@@ -503,9 +493,7 @@ const ShopDashboard = memo(() => {
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [, setIsAddingProduct] = useState(false);
 
-  // ── Auth check ───────────────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token || isJwtExpired(token)) {
@@ -514,38 +502,33 @@ const ShopDashboard = memo(() => {
     }
   }, [navigate]);
 
-  // ── Shop status gate ─────────────────────────────────────────────────────
-  // Wait until useUserShop finishes loading, then check status.
-  // Only ACTIVE shops can access the dashboard.
   useEffect(() => {
     if (shopLoading) return;
-    if (shopStatus !== "ACTIVE") {
-      navigate("/profile");
-    }
+    if (shopStatus !== "ACTIVE") navigate("/profile");
   }, [shopLoading, shopStatus, navigate]);
 
-  // ── Data fetching ────────────────────────────────────────────────────────
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
     const token = localStorage.getItem("accessToken");
+    if (!token) return;
     try {
       const res = await axios.get(`${apiURL}/users/me/products`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page: 0, size: 12, sort: "createdAt,desc" },
+        params: { page: 0, size: 50, sort: "createdAt,desc" },
       });
-      if (res.data.status === "OK" && res.data.data) {
-        productDetailsCache.clear();
-        setProducts(res.data.data.content || []);
-      } else {
-        setProducts([]);
-      }
+      const content = res.data?.data?.content ?? [];
+      productDetailsCache.clear();
+      setProducts(content);
     } catch (err) {
-      if (err.response?.status === 401) { localStorage.removeItem("accessToken"); navigate("/signin"); }
+      if (err.response?.status === 401) {
+        localStorage.removeItem("accessToken");
+        navigate("/signin");
+      }
       setProducts([]);
     } finally {
       setProductsLoading(false);
     }
-  }, [navigate]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDashboardData = useCallback(async () => {
     const token = localStorage.getItem("accessToken");
@@ -556,25 +539,20 @@ const ShopDashboard = memo(() => {
       const res = await axios.get(`${apiURL}/users/me/shops/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const dashData = res.data?.data ?? res.data;
-      if (dashData) {
-        setShopData(dashData);
-      } else {
-        setError("No shop data found");
-      }
+      if (dashData) setShopData(dashData);
+      else setError("No shop data found");
     } catch (err) {
-      if (err.response?.status === 401) { navigate("/signin"); }
-      else setError("Failed to load dashboard data. Access denied.");
+      if (err.response?.status === 401) navigate("/signin");
+      else setError("Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => { fetchDashboardData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchProducts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Success/error toast auto-hide ────────────────────────────────────────
   useEffect(() => {
     if (showSuccess) {
       const t = setTimeout(() => setShowSuccess(false), 5000);
@@ -589,7 +567,6 @@ const ShopDashboard = memo(() => {
     }
   }, [error]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleQuickAction = useCallback((action) => {
     switch (action) {
       case "add-product": setShowAddProduct(true); break;
@@ -604,17 +581,15 @@ const ShopDashboard = memo(() => {
     if (!token) { navigate("/signin"); return; }
     try {
       setIsDeleting(true);
-      const res = await axios.delete(`${apiURL}/users/me/products/${productId}`, {
+      await axios.delete(`${apiURL}/users/me/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data.status === "OK") {
-        setShowSuccess(true);
-        setSuccessMessage("Product deleted successfully");
-        productDetailsCache.delete(productId);
-        await fetchProducts();
-        setShowDeleteModal(false);
-        setDeleteProduct(null);
-      }
+      setShowSuccess(true);
+      setSuccessMessage("Product deleted successfully");
+      productDetailsCache.delete(productId);
+      setShowDeleteModal(false);
+      setDeleteProduct(null);
+      await fetchProducts();
     } catch (err) {
       if (err.response?.status === 401) { localStorage.removeItem("accessToken"); navigate("/signin"); }
       else setError("Error deleting product. Please try again.");
@@ -630,8 +605,13 @@ const ShopDashboard = memo(() => {
   const handleEditProduct = useCallback(async (product) => {
     let full = product;
     if (!product.category || product.stockQuantity === undefined) {
-      const details = await fetchProductDetails(product.id);
-      if (details) full = { ...product, ...details };
+      const cached = productDetailsCache.get(product.id);
+      if (cached) {
+        full = { ...product, ...cached };
+      } else {
+        const details = await fetchProductDetails(product.id);
+        if (details) full = { ...product, ...details };
+      }
     }
     setEditProduct(full);
     dispatch({ type: "SET_INITIAL_DATA", payload: full });
@@ -642,12 +622,11 @@ const ShopDashboard = memo(() => {
     dispatch({ type: "UPDATE_FIELD", field, value });
   }, []);
 
-  const addProduct = useCallback(async (returnProductId = false) => {
+  const addProduct = useCallback(async () => {
     const token = localStorage.getItem("accessToken");
     if (!token || isJwtExpired(token)) { navigate("/signin"); return; }
     if (!shopData) { setError("Shop data not loaded yet."); return; }
     try {
-      setIsAddingProduct(true);
       const res = await axios.post(
           `${apiURL}/users/me/products`,
           {
@@ -660,20 +639,23 @@ const ShopDashboard = memo(() => {
           },
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
-      if (res.data.status === "OK" && res.data.data) {
-        const productId = res.data.data.id;
-        setShowSuccess(true);
-        setSuccessMessage("Product added successfully!");
-        await fetchProducts();
+      const productId = res.data?.data?.id;
+      if (productId) {
         dispatch({ type: "RESET_FORM" });
-        if (returnProductId) return { productId };
+        return { productId };
+      } else {
+        throw new Error("No product ID returned");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add product.");
-    } finally {
-      setIsAddingProduct(false);
+      throw err;
     }
-  }, [navigate, fetchProducts, shopData, formState]);
+  }, [navigate, shopData, formState]);
+
+  const handleAddSubmit = useCallback(async () => {
+    setError("");
+    return await addProduct();
+  }, [addProduct]);
 
   const updateProduct = useCallback(async (productId, updateData, imageFile) => {
     const token = localStorage.getItem("accessToken");
@@ -703,12 +685,6 @@ const ShopDashboard = memo(() => {
     }
   }, [navigate, fetchProducts]);
 
-  const handleAddSubmit = useCallback(async (e, returnProductId = false) => {
-    e.preventDefault();
-    setError("");
-    return await addProduct(returnProductId);
-  }, [addProduct]);
-
   const handleEditSubmit = useCallback(async (e, imageFile) => {
     e.preventDefault();
     setError("");
@@ -722,7 +698,6 @@ const ShopDashboard = memo(() => {
     }, imageFile);
   }, [formState, editProduct, updateProduct]);
 
-  // ── Loading states ───────────────────────────────────────────────────────
   if (shopLoading || loading) {
     return (
         <Suspense fallback={<LoadingSpinner />}>
@@ -749,12 +724,8 @@ const ShopDashboard = memo(() => {
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Shop Not Found</h3>
               <p className="text-gray-600 mb-6">{error || "Could not load your shop data."}</p>
-              <button
-                  onClick={() => navigate("/profile")}
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all"
-              >
-                <i className="fa-solid fa-arrow-left mr-2" />
-                Back to Profile
+              <button onClick={() => navigate("/profile")} className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all">
+                <i className="fa-solid fa-arrow-left mr-2" />Back to Profile
               </button>
             </div>
           </div>
@@ -763,7 +734,6 @@ const ShopDashboard = memo(() => {
     );
   }
 
-  // ── Main render ──────────────────────────────────────────────────────────
   return (
       <Suspense fallback={<LoadingSpinner />}>
         <Header />
@@ -783,7 +753,7 @@ const ShopDashboard = memo(() => {
           <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-12">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex items-center mt-8">
-                <button onClick={() => navigate("/profile")} className="mr-4 p-2 hover:bg-emerald-500 rounded-lg transition-colors" title="Back to profile">
+                <button onClick={() => navigate("/profile")} className="mr-4 p-2 hover:bg-emerald-500 rounded-lg transition-colors">
                   <i className="fa-solid fa-arrow-left text-xl" />
                 </button>
                 <div>
@@ -796,15 +766,10 @@ const ShopDashboard = memo(() => {
 
           <div className="max-w-7xl mx-auto px-4 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-              <div className="lg:col-span-1">
-                <QuickActions onAction={handleQuickAction} />
-              </div>
-              <div className="lg:col-span-2">
-                <RecentOrders />
-              </div>
+              <div className="lg:col-span-1"><QuickActions onAction={handleQuickAction} /></div>
+              <div className="lg:col-span-2"><RecentOrders /></div>
             </div>
 
-            {/* ─── THE CHAT SECTION (NOW ALWAYS VISIBLE BUT CONDITIONALLY LOCKED) ─── */}
             <div className="mb-12">
               <Chat
                   isLocked={shopData?.subscriptionTier !== "PREMIUM"}
@@ -821,47 +786,67 @@ const ShopDashboard = memo(() => {
                 onDelete={(p) => { setDeleteProduct(p); setShowDeleteModal(true); }}
             />
 
-            {shopData && (
-                <div className="mt-8">
-                  <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                      <i className="fa-solid fa-info-circle mr-2 text-emerald-600" />
-                      Shop Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Shop Name</p>
-                        <p className="text-gray-800 font-semibold">{shopData.shopName}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Rating</p>
-                        <p className="text-gray-800 font-semibold">{shopData.rating ? `${shopData.rating}/5` : "No rating yet"}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Total Income</p>
-                        <p className="text-gray-800 font-semibold">${shopData.totalIncome || "0.00"}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 text-sm font-medium">Created</p>
-                        <p className="text-gray-800 font-semibold">{shopData.createdAt ? new Date(shopData.createdAt).toLocaleDateString() : "N/A"}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-gray-600 text-sm font-medium">Description</p>
-                        <p className="text-gray-800">{shopData.description || "No description provided"}</p>
-                      </div>
-                    </div>
+            <div className="mt-8">
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <i className="fa-solid fa-info-circle mr-2 text-emerald-600" />
+                  Shop Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Shop Name</p>
+                    <p className="text-gray-800 font-semibold">{shopData.shopName}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Rating</p>
+                    <p className="text-gray-800 font-semibold">{shopData.rating ? `${shopData.rating}/5` : "No rating yet"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Total Income</p>
+                    <p className="text-gray-800 font-semibold">${shopData.totalIncome || "0.00"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Created</p>
+                    <p className="text-gray-800 font-semibold">{shopData.createdAt ? new Date(shopData.createdAt).toLocaleDateString() : "N/A"}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-gray-600 text-sm font-medium">Description</p>
+                    <p className="text-gray-800">{shopData.description || "No description provided"}</p>
                   </div>
                 </div>
-            )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <AddProductModal open={showAddProduct} onClose={() => { setShowAddProduct(false); dispatch({ type: "RESET_FORM" }); }} handleAddSubmit={handleAddSubmit} handleInputChange={handleInputChange} formState={formState} />
-        <EditProductModal open={showEditModal} product={editProduct} onClose={() => { setShowEditModal(false); setEditProduct(null); dispatch({ type: "RESET_FORM" }); }} handleEditSubmit={handleEditSubmit} handleInputChange={handleInputChange} formState={formState} />
-        <DeleteConfirmModal open={showDeleteModal} productName={deleteProduct?.productName} onConfirm={handleConfirmDelete} onCancel={() => { setShowDeleteModal(false); setDeleteProduct(null); }} isDeleting={isDeleting} />
+        <AddProductModal
+            open={showAddProduct}
+            onClose={() => {
+              setShowAddProduct(false);
+              dispatch({ type: "RESET_FORM" });
+              fetchProducts();
+            }}
+            handleAddSubmit={handleAddSubmit}
+            handleInputChange={handleInputChange}
+            formState={formState}
+        />
+        <EditProductModal
+            open={showEditModal}
+            product={editProduct}
+            onClose={() => { setShowEditModal(false); setEditProduct(null); dispatch({ type: "RESET_FORM" }); }}
+            handleEditSubmit={handleEditSubmit}
+            handleInputChange={handleInputChange}
+            formState={formState}
+        />
+        <DeleteConfirmModal
+            open={showDeleteModal}
+            productName={deleteProduct?.productName}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => { setShowDeleteModal(false); setDeleteProduct(null); }}
+            isDeleting={isDeleting}
+        />
 
         {showSuccess && <SuccessToast message={successMessage} onClose={() => setShowSuccess(false)} />}
-
         <Footer />
       </Suspense>
   );
