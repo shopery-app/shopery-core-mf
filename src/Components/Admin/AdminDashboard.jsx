@@ -42,9 +42,7 @@ const RejectModal = ({ task, onConfirm, onCancel, loading }) => {
                   rows={4}
                   autoFocus
               />
-              {reason.trim() === "" && (
-                  <span className="reject-hint">This field is required.</span>
-              )}
+              {reason.trim() === "" && <span className="reject-hint">This field is required.</span>}
             </div>
             <div className="reject-actions">
               <button className="reject-cancel-btn" onClick={onCancel} disabled={loading}>
@@ -89,7 +87,8 @@ const AdminDashboard = () => {
   const [taskTotalPages, setTaskTotalPages] = useState(0);
   const [shopPage, setShopPage] = useState(0);
   const [shopTotalPages, setShopTotalPages] = useState(0);
-  const [taskFilter, setTaskFilter] = useState("");
+
+  const [taskFilter, setTaskFilter] = useState("SHOP_CREATION_REQUEST");
 
   const [modalItem, setModalItem] = useState(null);
   const [modalType, setModalType] = useState(null);
@@ -201,11 +200,24 @@ const AdminDashboard = () => {
   const getTaskStatus = (task) =>
       task.taskCategory === "SUPPORT_TICKET" ? task.ticketStatus : task.requestStatus;
 
-  const getTaskShopName = (task) =>
-      task.taskCategory === "SHOP_CREATION_REQUEST" ? task.shopName : null;
+  const getTaskTitle = (task) =>
+      task.taskCategory === "SUPPORT_TICKET"
+          ? task.supportTicketSubject || "—"
+          : task.shopName || "—";
 
   const getTaskTier = (task) =>
       task.taskCategory === "SHOP_CREATION_REQUEST" ? task.subscriptionTier : null;
+
+  const getStatusClassName = (status) => {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "open") return "status-badge open";
+    if (normalized === "closed") return "status-badge closed";
+    if (normalized === "pending") return "status-badge pending";
+    if (normalized === "approved") return "status-badge approved";
+    if (normalized === "rejected") return "status-badge rejected";
+    if (normalized === "active") return "status-badge active";
+    return "status-badge neutral";
+  };
 
   const renderTaskActions = (task) => {
     const status = getTaskStatus(task);
@@ -214,11 +226,7 @@ const AdminDashboard = () => {
       if (status !== "PENDING") {
         return (
             <span className="completed-stamp">
-            <i
-                className={`fa-solid ${
-                    status === "APPROVED" ? "fa-circle-check" : "fa-circle-xmark"
-                }`}
-            ></i>
+            <i className={`fa-solid ${status === "APPROVED" ? "fa-circle-check" : "fa-circle-xmark"}`}></i>
               {status}
           </span>
         );
@@ -268,6 +276,7 @@ const AdminDashboard = () => {
     if (t.taskCategory === "SUPPORT_TICKET") return t.ticketStatus === "OPEN";
     return t.requestStatus === "PENDING";
   }).length;
+
   const activeShops = shops.filter((s) => s.shopStatus === "ACTIVE").length;
 
   const currentPage = activeTab === "users" ? userPage : activeTab === "tasks" ? taskPage : shopPage;
@@ -361,15 +370,6 @@ const AdminDashboard = () => {
             {activeTab === "tasks" && (
                 <div className="sub-pill-filter">
                   <button
-                      className={taskFilter === "" ? "active" : ""}
-                      onClick={() => {
-                        setTaskFilter("");
-                        setTaskPage(0);
-                      }}
-                  >
-                    All
-                  </button>
-                  <button
                       className={taskFilter === "SHOP_CREATION_REQUEST" ? "active" : ""}
                       onClick={() => {
                         setTaskFilter("SHOP_CREATION_REQUEST");
@@ -431,20 +431,22 @@ const AdminDashboard = () => {
                                           user.firstName?.[0] || "U"
                                       )}
                                     </div>
-                                    <div>
-                                      <strong>
+                                    <div className="truncate-wrap">
+                                      <strong className="truncate-text">
                                         {user.firstName} {user.lastName}
                                       </strong>
-                                      <p className="text-muted">{user.email}</p>
+                                      <p className="text-muted truncate-text">{user.email}</p>
                                     </div>
                                   </div>
                                 </td>
-                                <td>{user.phone || "—"}</td>
+                                <td><span className="truncate-text-cell">{user.phone || "—"}</span></td>
                                 <td>{user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : "—"}</td>
                                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}</td>
                                 <td>
                                   {user.shop ? (
-                                      <span className="status-badge approved">{user.shop.shopName}</span>
+                                      <span className="status-badge approved truncate-badge" title={user.shop.shopName}>
+                                {user.shop.shopName}
+                              </span>
                                   ) : (
                                       <span className="text-muted">—</span>
                                   )}
@@ -474,8 +476,8 @@ const AdminDashboard = () => {
                           <thead>
                           <tr>
                             <th>Type</th>
-                            <th>Shop Name</th>
-                            <th>Tier</th>
+                            <th>Title</th>
+                            {taskFilter === "SHOP_CREATION_REQUEST" && <th>Tier</th>}
                             <th>Status</th>
                             <th>Requested By</th>
                             <th>Date</th>
@@ -486,14 +488,13 @@ const AdminDashboard = () => {
                           <tbody>
                           {tasks.length === 0 && (
                               <tr>
-                                <td colSpan="8" className="empty-row">
+                                <td colSpan={taskFilter === "SHOP_CREATION_REQUEST" ? "8" : "7"} className="empty-row">
                                   No tasks found.
                                 </td>
                               </tr>
                           )}
                           {tasks.map((task) => {
                             const status = getTaskStatus(task);
-                            const shopName = getTaskShopName(task);
                             const tier = getTaskTier(task);
 
                             return (
@@ -502,21 +503,34 @@ const AdminDashboard = () => {
                                     <span className="type-badge">{task.taskCategory?.replaceAll("_", " ")}</span>
                                   </td>
                                   <td>
-                                    <strong>{shopName || "—"}</strong>
+                                    <div className="table-title-cell">
+                                <span className="table-title" title={getTaskTitle(task)}>
+                                  {getTaskTitle(task)}
+                                </span>
+                                    </div>
+                                  </td>
+
+                                  {taskFilter === "SHOP_CREATION_REQUEST" && (
+                                      <td>
+                                        {tier ? (
+                                            <span className={`tier-badge ${tier.toLowerCase()}`}>{tier}</span>
+                                        ) : (
+                                            "—"
+                                        )}
+                                      </td>
+                                  )}
+
+                                  <td>
+                              <span className={getStatusClassName(status)}>
+                                <span className="status-dot"></span>
+                                {status || "—"}
+                              </span>
                                   </td>
                                   <td>
-                                    {tier ? (
-                                        <span className={`tier-badge ${tier.toLowerCase()}`}>{tier}</span>
-                                    ) : (
-                                        "—"
-                                    )}
-                                  </td>
-                                  <td>
-                                    <span className={`status-badge ${status?.toLowerCase()}`}>{status || "—"}</span>
-                                  </td>
-                                  <td>
-                                    <strong>{task.taskCreatorDto?.name || "—"}</strong>
-                                    <p className="text-muted">{task.taskCreatorDto?.email}</p>
+                                    <div className="truncate-wrap">
+                                      <strong className="truncate-text">{task.taskCreatorDto?.name || "—"}</strong>
+                                      <p className="text-muted truncate-text">{task.taskCreatorDto?.email}</p>
+                                    </div>
                                   </td>
                                   <td>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "—"}</td>
                                   <td>{renderTaskActions(task)}</td>
@@ -543,7 +557,7 @@ const AdminDashboard = () => {
                             <th>Shop</th>
                             <th>Owner</th>
                             <th>Tier</th>
-                            <th>Status</th>
+                            <th>Shop Status</th>
                             <th>Rating</th>
                             <th>Products</th>
                             <th>Income</th>
@@ -566,11 +580,13 @@ const AdminDashboard = () => {
                                     <div className="avatar shop-avatar">
                                       <i className="fa-solid fa-store"></i>
                                     </div>
-                                    <strong>{shop.shopName}</strong>
+                                    <strong className="truncate-text" title={shop.shopName}>{shop.shopName}</strong>
                                   </div>
                                 </td>
                                 <td>
-                                  <span className="text-muted">{shop.userEmail || "—"}</span>
+                            <span className="text-muted truncate-text-cell" title={shop.userEmail || "—"}>
+                              {shop.userEmail || "—"}
+                            </span>
                                 </td>
                                 <td>
                                   {shop.subscriptionTier && shop.subscriptionTier !== "NONE" ? (
@@ -582,8 +598,9 @@ const AdminDashboard = () => {
                                   )}
                                 </td>
                                 <td>
-                            <span className={`status-badge ${shop.shopStatus?.toLowerCase()}`}>
-                              {shop.shopStatus}
+                            <span className={getStatusClassName(shop.shopStatus)}>
+                              <span className="status-dot"></span>
+                              {shop.shopStatus || "—"}
                             </span>
                                 </td>
                                 <td>

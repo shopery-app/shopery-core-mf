@@ -3,6 +3,17 @@ import React from "react";
 const AdminDetailModal = ({ item, type, onClose }) => {
     if (!item) return null;
 
+    const getStatusClassName = (status) => {
+        const normalized = (status || "").toLowerCase();
+        if (normalized === "open") return "status-badge open";
+        if (normalized === "closed") return "status-badge closed";
+        if (normalized === "pending") return "status-badge pending";
+        if (normalized === "approved") return "status-badge approved";
+        if (normalized === "rejected") return "status-badge rejected";
+        if (normalized === "active") return "status-badge active";
+        return "status-badge neutral";
+    };
+
     const IdField = ({ label, value }) => (
         <div className="detail-field full">
             <span className="detail-label">{label}</span>
@@ -30,6 +41,13 @@ const AdminDetailModal = ({ item, type, onClose }) => {
         );
     };
 
+    const StatusPill = ({ status }) => (
+        <span className={getStatusClassName(status)}>
+            <span className="status-dot"></span>
+            {status || "—"}
+        </span>
+    );
+
     const renderUser = () => (
         <div className="detail-grid">
             <div className="detail-avatar-row">
@@ -55,7 +73,7 @@ const AdminDetailModal = ({ item, type, onClose }) => {
                         <Divider label="Shop Info" />
                         <Field label="Shop Name" value={item.shop.shopName} />
                         <Field label="Shop Status">
-                            <span className={`status-badge ${item.shop.status?.toLowerCase()}`}>{item.shop.status}</span>
+                            <StatusPill status={item.shop.status} />
                         </Field>
                         <IdField label="Shop ID" value={item.shop.id} />
                     </>
@@ -74,7 +92,7 @@ const AdminDetailModal = ({ item, type, onClose }) => {
             <div className="detail-grid">
                 <div className="detail-type-row">
                     <span className="type-badge">{item.taskCategory?.replaceAll("_", " ")}</span>
-                    <span className={`status-badge ${status?.toLowerCase()}`}>{status || "—"}</span>
+                    <StatusPill status={status} />
                 </div>
 
                 <div className="detail-fields">
@@ -131,7 +149,7 @@ const AdminDetailModal = ({ item, type, onClose }) => {
                 <div>
                     <h2 className="detail-name">{item.shopName}</h2>
                     <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
-                        <span className={`status-badge ${item.shopStatus?.toLowerCase()}`}>{item.shopStatus}</span>
+                        <StatusPill status={item.shopStatus} />
                         <span className={`tier-badge ${item.subscriptionTier?.toLowerCase()}`}>{item.subscriptionTier}</span>
                     </div>
                 </div>
@@ -141,7 +159,7 @@ const AdminDetailModal = ({ item, type, onClose }) => {
                 <IdField label="Shop ID" value={item.id} />
                 <Field label="Owner Email" value={item.userEmail} />
                 <Field label="User Status">
-                    <span className={`status-badge ${item.userStatus?.toLowerCase()}`}>{item.userStatus}</span>
+                    <StatusPill status={item.userStatus} />
                 </Field>
                 <Field label="Total Income" value={`$${item.totalIncome?.toFixed(2) ?? "0.00"}`} />
                 <Field label="Rating" value={item.rating?.toFixed(1) ?? "0.0"} />
