@@ -204,8 +204,8 @@ const Products = memo(() => {
         axios.get(`${apiURL}/dropdowns/product-conditions`)
       ]);
 
-      if (catRes.data.status === "OK") setCategories(catRes.data.data);
-      if (condRes.data.status === "OK") setConditions(condRes.data.data);
+      if (catRes.data.status) setCategories(catRes.data.data);
+      if (condRes.data.status) setConditions(condRes.data.data);
     } catch (error) {
       console.error("Error fetching filter options: ", error);
     }
