@@ -10,7 +10,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
 import useCart from "../../hooks/useCart";
-import useProducts from "../../hooks/useProducts";
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
@@ -178,8 +177,10 @@ const ShopDetail = memo(() => {
         headers: { "Content-Type": "application/json" },
       });
 
-      if (response.data.status === "OK" && response.data.data) {
+      if (response.data.data) {
         setShopData(response.data.data);
+        setProducts(response.data.data.products || []);
+        setProductsLoading(false);
       } else {
         setError("Shop not found.");
       }
@@ -211,7 +212,7 @@ const ShopDetail = memo(() => {
     [addToCart],
   );
 
-  const handleShopAction = useCallback((action) => {}, []);
+  const handleShopAction = useCallback(() => {}, []);
 
   const handleBackToShops = useCallback(() => {
     navigate("/shops");
@@ -233,42 +234,9 @@ const ShopDetail = memo(() => {
     }
   }, [shopData]);
 
-  const fetchProducts = useCallback(async () => {
-    setProductsLoading(true);
-    const token = localStorage.getItem("accessToken");
-    try {
-      const response = await axios.get(`${apiURL}/products`, {
-        params: {
-          pageable: JSON.stringify({
-            page: 0,
-            size: 12,
-            sort: "createdAt,desc",
-          }),
-        },
-
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.data.status === "OK" && response.data.data) {
-        setProducts(response.data.data.content);
-      } else {
-        setProducts([]);
-      }
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setProducts([]);
-    } finally {
-      setProductsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchShopData();
-    fetchProducts();
-  }, [fetchShopData, fetchProducts]);
+  }, [fetchShopData]);
 
   useEffect(() => {
     if (search.trim() === "") {
