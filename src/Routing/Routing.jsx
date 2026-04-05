@@ -15,10 +15,10 @@ import Shops from "../Components/Merchant/Shops";
 import PublicShopDetail from "../Components/Shop/ShopDetail";
 import ShopDashboard from "../Components/Merchant/Dashboard/ShopDashboard";
 
-import ProfileDashboard from "../Components/Customer/ProfileDashboard";
-import Addresses from "../Components/Customer/Addresses";
-import Settings from "../Components/Customer/Settings";
-import Support from "../Components/Customer/Support";
+import ProfileDashboard from "../Components/User/ProfileDashboard";
+import Addresses from "../Components/User/Addresses";
+import Settings from "../Components/User/Settings";
+import Support from "../Components/User/Support";
 
 import Products from "../Components/Products/Products";
 import CategoryProducts from "../Components/Products/CategoryProducts";
