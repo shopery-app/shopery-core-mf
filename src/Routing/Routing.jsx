@@ -28,6 +28,9 @@ import Blogs from "../Components/Blogs/Blogs";
 import BlogDetail from "../Components/Blogs/BlogDetails";
 import LikedBlogs from "../Components/Blogs/LikedBlogs";
 import SavedBlogs from "../Components/Blogs/SavedBlogs";
+import MyBlogs from "../Components/Blogs/MyBlogs";
+import ArchivedBlogs from "../Components/Blogs/ArchivedBlogs";
+import EditBlog from "../Components/Blogs/EditBlog";
 
 import AdminLogin from "../Components/Admin/AdminLogin";
 import AdminDashboard from "../Components/Admin/AdminDashboard";
@@ -167,6 +170,34 @@ const Routing = () => {
             {/* ── Blogs ── */}
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/blogs/:blogId" element={<BlogDetail />} />
+
+            <Route
+                path="/blogs/me"
+                element={
+                    <ProtectedRoute>
+                        <MyBlogs />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/blogs/archived"
+                element={
+                    <ProtectedRoute>
+                        <ArchivedBlogs />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/blogs/edit/:blogId"
+                element={
+                    <ProtectedRoute>
+                        <EditBlog />
+                    </ProtectedRoute>
+                }
+            />
+
             <Route
                 path="/blogs/liked"
                 element={
@@ -175,6 +206,7 @@ const Routing = () => {
                     </ProtectedRoute>
                 }
             />
+
             <Route
                 path="/blogs/saved"
                 element={

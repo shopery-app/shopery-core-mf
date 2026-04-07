@@ -7,19 +7,22 @@ import { persistor, store } from "./store";
 import { PersistGate } from "redux-persist/integration/react";
 import CartSuccessToast from "./Components/Cart/CartSuccessToast";
 import CartSidebar from "./Components/Cart/CartSidebar";
+import ToastProvider from "./Components/UI/ToastProvider";
 
 const App = () => {
-  return (
-    <Provider store={store}>
-      <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
-        <ShopsProvider>
-          <Routing />
-          <CartSidebar />
-          <CartSuccessToast />
-        </ShopsProvider>
-      </PersistGate>
-    </Provider>
-  );
+    return (
+        <Provider store={store}>
+            <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
+                <ShopsProvider>
+                    <ToastProvider>
+                        <Routing />
+                        <CartSidebar />
+                        <CartSuccessToast />
+                    </ToastProvider>
+                </ShopsProvider>
+            </PersistGate>
+        </Provider>
+    );
 };
 
 export default App;
