@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
+import BlogCard from "./BlogCard";
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
@@ -18,7 +19,9 @@ const SavedBlogs = memo(() => {
         if (!token) return navigate("/signin");
         try {
             setLoading(true);
-            const res = await axios.get(`${apiURL}/users/me/blogs/save`, { headers: authHeaders(token) });
+            const res = await axios.get(`${apiURL}/users/me/blogs/save`, {
+                headers: authHeaders(token),
+            });
             setBlogs(res?.data?.data?.content || []);
         } catch (e) {
             setBlogs([]);
@@ -27,28 +30,60 @@ const SavedBlogs = memo(() => {
         }
     }, [navigate]);
 
-    useEffect(() => { fetchSaved(); }, [fetchSaved]);
+    useEffect(() => {
+        fetchSaved();
+    }, [fetchSaved]);
 
-    const handleUnsave = async (e, id) => {
-        e.stopPropagation();
+    const handleUnsave = async (id) => {
         const token = localStorage.getItem("accessToken");
         if (!token) return navigate("/signin");
+
         const prev = blogs;
-        setBlogs((c) => c.filter((b) => b.id !== id));
+        setBlogs((current) => current.filter((blog) => blog.id !== id));
+
         try {
-            await axios.post(`${apiURL}/users/me/blogs/${id}/save`, {}, { headers: authHeaders(token) });
+            await axios.post(
+                `${apiURL}/users/me/blogs/${id}/save`,
+                {},
+                { headers: authHeaders(token) }
+            );
         } catch (e) {
             setBlogs(prev);
         }
     };
 
     return (
-        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
-            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+        <div
+            style={{
+                minHeight: "100vh",
+                background: "#FAFAF8",
+                fontFamily: "'Instrument Sans', sans-serif",
+            }}
+        >
+            <link
+                href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap"
+                rel="stylesheet"
+            />
             <Header />
 
-            <div style={{ background: "#2D2A52", paddingTop: "120px", paddingBottom: "80px", textAlign: "center", marginBottom: "-40px" }}>
-                <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "48px", fontWeight: 400, color: "#FAFAF8", margin: "0 0 8px" }}>
+            <div
+                style={{
+                    background: "#2D2A52",
+                    paddingTop: "120px",
+                    paddingBottom: "80px",
+                    textAlign: "center",
+                    marginBottom: "-40px",
+                }}
+            >
+                <h1
+                    style={{
+                        fontFamily: "'DM Serif Display', serif",
+                        fontSize: "48px",
+                        fontWeight: 400,
+                        color: "#FAFAF8",
+                        margin: "0 0 8px",
+                    }}
+                >
                     Reading List
                 </h1>
                 <p style={{ fontSize: "15px", color: "#B0ADCC", margin: 0 }}>
@@ -60,64 +95,99 @@ const SavedBlogs = memo(() => {
                 <div style={{ marginBottom: "32px", paddingTop: "48px" }}>
                     <button
                         onClick={() => navigate("/blogs")}
-                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#4A4A44", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#F5F3EE"}
-                        onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px 20px",
+                            background: "#FFFFFF",
+                            border: "1px solid #ECEAE4",
+                            borderRadius: "10px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#4A4A44",
+                            cursor: "pointer",
+                            letterSpacing: "0.04em",
+                            fontFamily: "'Instrument Sans', sans-serif",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F3EE")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
                     >
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path
+                                d="M8 2L4 6l4 4"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
                         </svg>
                         BACK TO FEED
                     </button>
                 </div>
 
                 {loading ? (
-                    <div style={{ textAlign: "center", padding: "80px", display: "flex", justifyContent: "center" }}>
-                        <div style={{ width: "32px", height: "32px", border: "2px solid #ECEAE4", borderTopColor: "#2D2A52", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    <div
+                        style={{
+                            textAlign: "center",
+                            padding: "80px",
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: "32px",
+                                height: "32px",
+                                border: "2px solid #ECEAE4",
+                                borderTopColor: "#2D2A52",
+                                borderRadius: "50%",
+                                animation: "spin 0.8s linear infinite",
+                            }}
+                        />
                     </div>
                 ) : blogs.length > 0 ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                            gap: "24px",
+                        }}
+                    >
                         {blogs.map((blog) => (
-                            <div
+                            <BlogCard
                                 key={blog.id}
-                                onClick={() => navigate(`/blogs/${blog.id}`)}
-                                style={{ background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "16px", overflow: "hidden", cursor: "pointer", transition: "all 0.2s" }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-                            >
-                                <div style={{ height: "180px", background: "#F0EDE5", overflow: "hidden" }}>
-                                    {blog.imageUrl ? (
-                                        <img src={blog.imageUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={blog.blogTitle} />
-                                    ) : (
-                                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="4" width="22" height="18" rx="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><circle cx="10" cy="11" r="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><path d="M3 19l6-5 4.5 4.5 3.5-3 7.5 5" stroke="#C4BFB4" strokeWidth="1.5" strokeLinejoin="round"/></svg>
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ padding: "18px 20px" }}>
-                                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "19px", fontWeight: 400, color: "#1A1A18", margin: "0 0 8px", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
-                                        {blog.blogTitle}
-                                    </h3>
-                                    <p style={{ fontSize: "13px", color: "#6B6B65", margin: "0 0 16px", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                                        {blog.content}
-                                    </p>
-                                    <button
-                                        onClick={(e) => handleUnsave(e, blog.id)}
-                                        style={{ width: "100%", padding: "10px", background: "#F5F3FF", border: "1px solid #DDD8F0", borderRadius: "8px", fontSize: "11.5px", fontWeight: 600, color: "#5B52A3", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif", transition: "all 0.15s" }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = "#2D2A52"; e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#2D2A52"; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#5B52A3"; e.currentTarget.style.borderColor = "#DDD8F0"; }}
-                                    >
-                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2a1 1 0 011-1h7a1 1 0 011 1v9.5l-4.5-2.5L2 11.5V2z" strokeLinejoin="round"/></svg>
-                                        REMOVE FROM LIST
-                                    </button>
-                                </div>
-                            </div>
+                                blog={{ ...blog, isSaved: true, isLiked: !!blog.isLiked }}
+                                onLike={() => {}}
+                                onSave={handleUnsave}
+                                isOwner={false}
+                                token={localStorage.getItem("accessToken")}
+                            />
                         ))}
                     </div>
                 ) : (
-                    <div style={{ textAlign: "center", padding: "80px 40px", background: "#FFFFFF", borderRadius: "20px", border: "1px solid #ECEAE4" }}>
-                        <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", margin: "0 0 8px" }}>Your list is empty</p>
-                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: 0 }}>Found something interesting? Save it for later.</p>
+                    <div
+                        style={{
+                            textAlign: "center",
+                            padding: "80px 40px",
+                            background: "#FFFFFF",
+                            borderRadius: "20px",
+                            border: "1px solid #ECEAE4",
+                        }}
+                    >
+                        <p
+                            style={{
+                                fontFamily: "'DM Serif Display', serif",
+                                fontSize: "24px",
+                                color: "#2C2C28",
+                                margin: "0 0 8px",
+                            }}
+                        >
+                            Your list is empty
+                        </p>
+                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: 0 }}>
+                            Found something interesting? Save it for later.
+                        </p>
                     </div>
                 )}
             </div>
