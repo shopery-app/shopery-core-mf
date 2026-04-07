@@ -1,3 +1,4 @@
+// ShopDashboard.jsx — only the changed parts shown as full file
 import React, {
   useState,
   useEffect,
@@ -13,6 +14,7 @@ import { apiURL } from "../../../Backend/Api/api";
 import { isJwtExpired } from "../../../utils/jwt";
 import useUserShop from "../../../hooks/useUserShop";
 import Chat from "../../Advisory/Chat";
+import SellerInbox from "../SellerInbox.jsx";
 
 const Header = lazy(() => import("../../Header"));
 const Footer = lazy(() => import("../../Footer"));
@@ -40,8 +42,7 @@ SuccessToast.displayName = "SuccessToast";
 const QuickActions = memo(({ onAction }) => (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-        <i className="fa-solid fa-bolt mr-2 text-emerald-600" />
-        Quick Actions
+        <i className="fa-solid fa-bolt mr-2 text-emerald-600" />Quick Actions
       </h3>
       <div className="grid grid-cols-2 gap-3">
         {[
@@ -67,8 +68,7 @@ QuickActions.displayName = "QuickActions";
 const RecentOrders = memo(() => (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-        <i className="fa-solid fa-receipt mr-2 text-emerald-600" />
-        Recent Orders
+        <i className="fa-solid fa-receipt mr-2 text-emerald-600" />Recent Orders
       </h3>
       <div className="text-center py-8">
         <i className="fa-solid fa-shopping-cart text-4xl text-gray-300 mb-3 block" />
@@ -84,14 +84,9 @@ const fetchProductDetails = async (productId) => {
   try {
     const res = await axios.get(`${apiURL}/products/${productId}`);
     const data = res.data?.data ?? res.data;
-    if (data && data.id) {
-      productDetailsCache.set(productId, data);
-      return data;
-    }
+    if (data && data.id) { productDetailsCache.set(productId, data); return data; }
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
 
 const ProductCard = memo(({ product, showEditModal, onDelete }) => {
@@ -99,26 +94,19 @@ const ProductCard = memo(({ product, showEditModal, onDelete }) => {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    // Only fetch extra details if fields are missing
     const needsDetails = !product.category || product.stockQuantity === undefined || product.condition === undefined;
     if (!needsDetails) return;
-
-    // Check cache first
     if (productDetailsCache.has(product.id)) {
       setDetail((p) => ({ ...p, ...productDetailsCache.get(product.id) }));
       return;
     }
-
     let cancelled = false;
     setDetailLoading(true);
     fetchProductDetails(product.id).then((d) => {
       if (!cancelled && d) setDetail((p) => ({ ...p, ...d }));
-    }).finally(() => {
-      if (!cancelled) setDetailLoading(false);
-    });
-
+    }).finally(() => { if (!cancelled) setDetailLoading(false); });
     return () => { cancelled = true; };
-  }, [product.id]); // only product.id — never loading state
+  }, [product.id]);
 
   const price = detail.discountDto?.currentPrice ?? detail.currentPrice ?? detail.price ?? "0.00";
 
@@ -139,21 +127,19 @@ const ProductCard = memo(({ product, showEditModal, onDelete }) => {
         <div className="flex justify-between items-center mt-2">
           <span className="text-emerald-700 font-bold text-lg">${price}</span>
           <span className="text-xs bg-gray-100 rounded-full px-2 py-1 font-medium">
-            {detailLoading ? <i className="fa-solid fa-spinner fa-spin text-gray-400" /> : (detail.category || "N/A")}
-          </span>
+                    {detailLoading ? <i className="fa-solid fa-spinner fa-spin text-gray-400" /> : (detail.category || "N/A")}
+                </span>
         </div>
         <div className="flex justify-between items-center text-xs text-gray-500">
-          <span>
-            Stock: {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.stockQuantity ?? "N/A")}
-          </span>
+          <span>Stock: {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.stockQuantity ?? "N/A")}</span>
           <span className={`px-2 py-1 rounded-full ${
               detail.condition === "NEW" ? "bg-green-100 text-green-800"
                   : detail.condition === "USED" ? "bg-yellow-100 text-yellow-800"
                       : detail.condition === "REFURBISHED" ? "bg-blue-100 text-blue-800"
                           : "bg-gray-100 text-gray-800"
           }`}>
-            {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.condition || "N/A")}
-          </span>
+                    {detailLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (detail.condition || "N/A")}
+                </span>
         </div>
         <div className="flex gap-2 mt-3">
           <button
@@ -211,11 +197,7 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!open) {
-      setImageFile(null);
-      setImagePreview(null);
-      setError("");
-    }
+    if (!open) { setImageFile(null); setImagePreview(null); setError(""); }
   }, [open]);
 
   useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
@@ -245,9 +227,7 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
     setIsUploading(true);
     try {
       const result = await handleAddSubmit();
-      if (result?.productId && imageFile) {
-        await uploadImage(result.productId, imageFile);
-      }
+      if (result?.productId && imageFile) await uploadImage(result.productId, imageFile);
       setImageFile(null);
       setImagePreview(null);
       onClose();
@@ -267,9 +247,7 @@ const AddProductModal = memo(({ open, onClose, formState, handleInputChange, han
             <i className="fa-solid fa-xmark text-xl" />
           </button>
           <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">Add New Product</h2>
-          {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
-          )}
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
@@ -496,10 +474,7 @@ const ShopDashboard = memo(() => {
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token || isJwtExpired(token)) {
-      localStorage.removeItem("accessToken");
-      navigate("/signin");
-    }
+    if (!token || isJwtExpired(token)) { localStorage.removeItem("accessToken"); navigate("/signin"); }
   }, [navigate]);
 
   useEffect(() => {
@@ -520,10 +495,7 @@ const ShopDashboard = memo(() => {
       productDetailsCache.clear();
       setProducts(content);
     } catch (err) {
-      if (err.response?.status === 401) {
-        localStorage.removeItem("accessToken");
-        navigate("/signin");
-      }
+      if (err.response?.status === 401) { localStorage.removeItem("accessToken"); navigate("/signin"); }
       setProducts([]);
     } finally {
       setProductsLoading(false);
@@ -554,17 +526,11 @@ const ShopDashboard = memo(() => {
   useEffect(() => { fetchProducts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (showSuccess) {
-      const t = setTimeout(() => setShowSuccess(false), 5000);
-      return () => clearTimeout(t);
-    }
+    if (showSuccess) { const t = setTimeout(() => setShowSuccess(false), 5000); return () => clearTimeout(t); }
   }, [showSuccess]);
 
   useEffect(() => {
-    if (error) {
-      const t = setTimeout(() => setError(""), 8000);
-      return () => clearTimeout(t);
-    }
+    if (error) { const t = setTimeout(() => setError(""), 8000); return () => clearTimeout(t); }
   }, [error]);
 
   const handleQuickAction = useCallback((action) => {
@@ -606,12 +572,8 @@ const ShopDashboard = memo(() => {
     let full = product;
     if (!product.category || product.stockQuantity === undefined) {
       const cached = productDetailsCache.get(product.id);
-      if (cached) {
-        full = { ...product, ...cached };
-      } else {
-        const details = await fetchProductDetails(product.id);
-        if (details) full = { ...product, ...details };
-      }
+      if (cached) { full = { ...product, ...cached }; }
+      else { const details = await fetchProductDetails(product.id); if (details) full = { ...product, ...details }; }
     }
     setEditProduct(full);
     dispatch({ type: "SET_INITIAL_DATA", payload: full });
@@ -640,12 +602,8 @@ const ShopDashboard = memo(() => {
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       const productId = res.data?.data?.id;
-      if (productId) {
-        dispatch({ type: "RESET_FORM" });
-        return { productId };
-      } else {
-        throw new Error("No product ID returned");
-      }
+      if (productId) { dispatch({ type: "RESET_FORM" }); return { productId }; }
+      else throw new Error("No product ID returned");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add product.");
       throw err;
@@ -703,10 +661,7 @@ const ShopDashboard = memo(() => {
         <Suspense fallback={<LoadingSpinner />}>
           <Header />
           <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-            <div className="text-center">
-              <LoadingSpinner />
-              <p className="mt-6 text-gray-600 font-medium">Loading your shop dashboard...</p>
-            </div>
+            <div className="text-center"><LoadingSpinner /><p className="mt-6 text-gray-600 font-medium">Loading your shop dashboard...</p></div>
           </div>
           <Footer />
         </Suspense>
@@ -719,9 +674,7 @@ const ShopDashboard = memo(() => {
           <Header />
           <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
             <div className="text-center max-w-md mx-auto p-6">
-              <div className="text-red-500 mb-6">
-                <i className="fa-solid fa-exclamation-triangle text-6xl" />
-              </div>
+              <div className="text-red-500 mb-6"><i className="fa-solid fa-exclamation-triangle text-6xl" /></div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Shop Not Found</h3>
               <p className="text-gray-600 mb-6">{error || "Could not load your shop data."}</p>
               <button onClick={() => navigate("/profile")} className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all">
@@ -789,8 +742,7 @@ const ShopDashboard = memo(() => {
             <div className="mt-8">
               <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                  <i className="fa-solid fa-info-circle mr-2 text-emerald-600" />
-                  Shop Information
+                  <i className="fa-solid fa-info-circle mr-2 text-emerald-600" />Shop Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -821,11 +773,7 @@ const ShopDashboard = memo(() => {
 
         <AddProductModal
             open={showAddProduct}
-            onClose={() => {
-              setShowAddProduct(false);
-              dispatch({ type: "RESET_FORM" });
-              fetchProducts();
-            }}
+            onClose={() => { setShowAddProduct(false); dispatch({ type: "RESET_FORM" }); fetchProducts(); }}
             handleAddSubmit={handleAddSubmit}
             handleInputChange={handleInputChange}
             formState={formState}
@@ -845,6 +793,8 @@ const ShopDashboard = memo(() => {
             onCancel={() => { setShowDeleteModal(false); setDeleteProduct(null); }}
             isDeleting={isDeleting}
         />
+
+        {profile?.id && <SellerInbox currentUser={profile} />}
 
         {showSuccess && <SuccessToast message={successMessage} onClose={() => setShowSuccess(false)} />}
         <Footer />
