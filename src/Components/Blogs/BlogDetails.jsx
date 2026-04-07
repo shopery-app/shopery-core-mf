@@ -6,8 +6,7 @@ import Header from "../Header";
 import Footer from "../Footer";
 import { useToast } from "../UI/ToastProvider";
 
-const authHeaders = (token) =>
-    token ? { Authorization: `Bearer ${token}` } : {};
+const authHeaders = (token) => token ? { Authorization: `Bearer ${token}` } : {};
 
 const BlogDetails = () => {
     const { blogId } = useParams();
@@ -22,12 +21,9 @@ const BlogDetails = () => {
     const fetchDetail = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${apiURL}/blogs/${blogId}`, {
-                headers: authHeaders(token),
-            });
+            const res = await axios.get(`${apiURL}/blogs/${blogId}`, { headers: authHeaders(token) });
             setBlog(res?.data?.data || null);
         } catch (e) {
-            console.error("fetchDetail error:", e);
             setBlog(null);
         } finally {
             setLoading(false);
@@ -35,181 +31,150 @@ const BlogDetails = () => {
     }, [blogId, token]);
 
     const fetchUserStates = useCallback(async () => {
-        if (!token) {
-            setIsLiked(false);
-            setIsSaved(false);
-            return;
-        }
-
+        if (!token) { setIsLiked(false); setIsSaved(false); return; }
         try {
             const [likedRes, savedRes] = await Promise.all([
-                axios.get(`${apiURL}/users/me/blogs/like`, {
-                    headers: authHeaders(token),
-                }),
-                axios.get(`${apiURL}/users/me/blogs/save`, {
-                    headers: authHeaders(token),
-                }),
+                axios.get(`${apiURL}/users/me/blogs/like`, { headers: authHeaders(token) }),
+                axios.get(`${apiURL}/users/me/blogs/save`, { headers: authHeaders(token) }),
             ]);
-
             const likedIds = new Set((likedRes?.data?.data?.content || []).map((b) => b.id));
             const savedIds = new Set((savedRes?.data?.data?.content || []).map((b) => b.id));
-
             setIsLiked(likedIds.has(blogId));
             setIsSaved(savedIds.has(blogId));
-        } catch (e) {
-            console.error("fetchUserStates error:", e);
-        }
+        } catch (e) { console.error(e); }
     }, [blogId, token]);
 
-    useEffect(() => {
-        fetchDetail();
-    }, [fetchDetail]);
-
-    useEffect(() => {
-        fetchUserStates();
-    }, [fetchUserStates]);
+    useEffect(() => { fetchDetail(); }, [fetchDetail]);
+    useEffect(() => { fetchUserStates(); }, [fetchUserStates]);
 
     const handleLike = async () => {
         if (!token) return navigate("/signin");
-
-        const prevLiked = isLiked;
-        setIsLiked(!prevLiked);
-        setBlog((prev) =>
-            prev
-                ? {
-                    ...prev,
-                    likeCount: Math.max(0, (prev.likeCount || 0) + (prevLiked ? -1 : 1)),
-                }
-                : prev
-        );
-
+        const prev = isLiked;
+        setIsLiked(!prev);
+        setBlog((b) => b ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (prev ? -1 : 1)) } : b);
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${blogId}/like`,
-                {},
-                { headers: authHeaders(token) }
-            );
+            await axios.post(`${apiURL}/users/me/blogs/${blogId}/like`, {}, { headers: authHeaders(token) });
         } catch (e) {
-            console.error("handleLike error:", e);
-            setIsLiked(prevLiked);
-            setBlog((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        likeCount: Math.max(0, (prev.likeCount || 0) + (prevLiked ? 1 : -1)),
-                    }
-                    : prev
-            );
+            setIsLiked(prev);
+            setBlog((b) => b ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (prev ? 1 : -1)) } : b);
             showToast("Could not update like", "error");
         }
     };
 
     const handleSave = async () => {
         if (!token) return navigate("/signin");
-
-        const prevSaved = isSaved;
-        setIsSaved(!prevSaved);
-
+        const prev = isSaved;
+        setIsSaved(!prev);
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${blogId}/save`,
-                {},
-                { headers: authHeaders(token) }
-            );
-            showToast(prevSaved ? "Removed from reading list" : "Saved to reading list", "success");
+            await axios.post(`${apiURL}/users/me/blogs/${blogId}/save`, {}, { headers: authHeaders(token) });
+            showToast(prev ? "Removed from reading list" : "Saved to reading list", "success");
         } catch (e) {
-            console.error("handleSave error:", e);
-            setIsSaved(prevSaved);
+            setIsSaved(prev);
             showToast("Could not update saved state", "error");
         }
     };
 
     if (loading) {
-        return <div className="h-screen flex items-center justify-center font-black animate-pulse">LOADING...</div>;
+        return (
+            <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+                <div style={{ width: "36px", height: "36px", border: "2px solid #ECEAE4", borderTopColor: "#1A1A18", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
     }
 
     if (!blog) {
         return (
-            <div className="h-screen flex flex-col items-center justify-center">
-                Story not found.
-                <button onClick={() => navigate("/blogs")}>Back</button>
+            <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+                <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", marginBottom: "16px" }}>Story not found</p>
+                <button onClick={() => navigate("/blogs")} style={{ padding: "10px 24px", background: "#1A1A18", color: "#FAFAF8", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'Instrument Sans', sans-serif" }}>
+                    Back to Feed
+                </button>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
             <Header />
-            <div className="pt-32 pb-20 max-w-4xl mx-auto px-6">
+
+            <div style={{ maxWidth: "760px", margin: "0 auto", padding: "120px 32px 80px" }}>
                 <button
                     onClick={() => navigate(-1)}
-                    className="mb-8 text-slate-400 font-bold text-[10px] tracking-widest flex items-center gap-2 hover:text-slate-900 transition-colors uppercase"
+                    style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "#9B9B94", letterSpacing: "0.05em", marginBottom: "40px", padding: 0, fontFamily: "'Instrument Sans', sans-serif", transition: "color 0.15s" }}
+                    onMouseEnter={e => e.currentTarget.style.color = "#1A1A18"}
+                    onMouseLeave={e => e.currentTarget.style.color = "#9B9B94"}
                 >
-                    <i className="fa-solid fa-arrow-left"></i> Go Back
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M9 2L5 7l4 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    GO BACK
                 </button>
 
-                <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1] tracking-tight">
+                <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400, color: "#1A1A18", margin: "0 0 32px", lineHeight: 1.15 }}>
                     {blog.blogTitle}
                 </h1>
 
-                <div className="flex flex-wrap items-center justify-between gap-6 mb-12 py-6 border-y border-slate-100">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100">
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "20px", marginBottom: "40px", padding: "20px 0", borderTop: "1px solid #ECEAE4", borderBottom: "1px solid #ECEAE4" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ width: "44px", height: "44px", borderRadius: "50%", overflow: "hidden", background: "#E8E5DE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {blog.author?.profilePhotoUrl ? (
-                                <img src={blog.author.profilePhotoUrl} className="w-full h-full object-cover" alt="" />
+                                <img src={blog.author.profilePhotoUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white font-bold text-lg">
+                                <span style={{ fontSize: "16px", fontWeight: 600, color: "#6B5A3E" }}>
                                     {blog.author?.name?.charAt(0) || "?"}
-                                </div>
+                                </span>
                             )}
                         </div>
-
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Written By</p>
-                            <h4 className="font-bold text-slate-900 text-lg leading-none">{blog.author?.name || "Unknown"}</h4>
+                            <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#1A1A18" }}>{blog.author?.name || "Anonymous"}</p>
+                            <p style={{ margin: 0, fontSize: "12px", color: "#9B9B94" }}>
+                                {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div style={{ display: "flex", gap: "10px" }}>
                         <button
                             onClick={handleLike}
-                            className={`flex items-center gap-2 px-5 py-2 rounded-full font-bold text-sm transition-colors ${
-                                isLiked ? "bg-rose-600 text-white" : "bg-rose-50 text-rose-600 hover:bg-rose-100"
-                            }`}
+                            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 18px", borderRadius: "22px", border: "1px solid", borderColor: isLiked ? "#FECACA" : "#ECEAE4", background: isLiked ? "#FFF0F0" : "transparent", color: isLiked ? "#C0392B" : "#6B6B65", cursor: "pointer", fontSize: "13px", fontWeight: 500, fontFamily: "'Instrument Sans', sans-serif", transition: "all 0.15s" }}
                         >
-                            <i className={`${isLiked ? "fa-solid" : "fa-regular"} fa-heart`}></i>
+                            <svg width="15" height="15" viewBox="0 0 15 15" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+                                <path d="M7.5 12.5S1.5 8.5 1.5 4.5a3 3 0 015.5-1.7A3 3 0 0113.5 4.5c0 4-6 8-6 8z" strokeLinejoin="round"/>
+                            </svg>
                             {blog.likeCount || 0}
                         </button>
 
                         <button
                             onClick={handleSave}
-                            className={`flex items-center gap-2 px-5 py-2 rounded-full font-bold text-sm transition-colors ${
-                                isSaved ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                            }`}
+                            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 18px", borderRadius: "22px", border: "1px solid", borderColor: isSaved ? "#D4C9B0" : "#ECEAE4", background: isSaved ? "#F5F0E8" : "transparent", color: isSaved ? "#6B5A3E" : "#6B6B65", cursor: "pointer", fontSize: "13px", fontWeight: 500, fontFamily: "'Instrument Sans', sans-serif", transition: "all 0.15s" }}
                         >
-                            <i className={`${isSaved ? "fa-solid" : "fa-regular"} fa-bookmark`}></i>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+                                <path d="M2.5 2a1 1 0 011-1h7a1 1 0 011 1v10.5l-4.5-2.5-4.5 2.5V2z" strokeLinejoin="round"/>
+                            </svg>
                             {isSaved ? "Saved" : "Save"}
                         </button>
                     </div>
                 </div>
 
                 {blog.imageUrl && (
-                    <div className="mb-14">
-                        <img src={blog.imageUrl} className="w-full rounded-[2rem] shadow-xl" alt={blog.blogTitle} />
+                    <div style={{ marginBottom: "48px", borderRadius: "16px", overflow: "hidden" }}>
+                        <img src={blog.imageUrl} style={{ width: "100%", display: "block" }} alt={blog.blogTitle} />
                     </div>
                 )}
 
-                <div className="max-w-3xl mx-auto">
-                    <p className="text-slate-800 leading-[2] text-xl whitespace-pre-line font-serif">
-                        {blog.content}
+                <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "19px", fontWeight: 400, color: "#2C2C28", lineHeight: 1.9, whiteSpace: "pre-line", margin: 0 }}>
+                    {blog.content}
+                </p>
+
+                <div style={{ marginTop: "64px", paddingTop: "32px", borderTop: "1px solid #ECEAE4", textAlign: "center" }}>
+                    <p style={{ fontSize: "12px", color: "#B0ADA5", margin: 0, letterSpacing: "0.05em" }}>
+                        PUBLISHED {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }).toUpperCase() : ""}
                     </p>
-                    <div className="mt-12 pt-12 border-t border-slate-100 text-center">
-                        <p className="text-slate-400 text-sm italic">
-                            Published on {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : "-"}
-                        </p>
-                    </div>
                 </div>
             </div>
+
             <Footer />
         </div>
     );

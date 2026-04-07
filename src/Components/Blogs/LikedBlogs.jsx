@@ -16,124 +16,113 @@ const LikedBlogs = memo(() => {
     const fetchLiked = useCallback(async () => {
         const token = localStorage.getItem("accessToken");
         if (!token) return navigate("/signin");
-
         try {
             setLoading(true);
-            const res = await axios.get(`${apiURL}/users/me/blogs/like`, {
-                headers: authHeaders(token),
-            });
+            const res = await axios.get(`${apiURL}/users/me/blogs/like`, { headers: authHeaders(token) });
             setBlogs(res?.data?.data?.content || []);
         } catch (e) {
-            console.error("fetchLiked error:", e);
             setBlogs([]);
         } finally {
             setLoading(false);
         }
     }, [navigate]);
 
-    useEffect(() => {
-        fetchLiked();
-    }, [fetchLiked]);
+    useEffect(() => { fetchLiked(); }, [fetchLiked]);
 
     const handleUnlike = async (e, id) => {
         e.stopPropagation();
         const token = localStorage.getItem("accessToken");
         if (!token) return navigate("/signin");
-
         const prev = blogs;
-        setBlogs((curr) => curr.filter((b) => b.id !== id));
-
+        setBlogs((c) => c.filter((b) => b.id !== id));
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${id}/like`,
-                {},
-                { headers: authHeaders(token) }
-            );
+            await axios.post(`${apiURL}/users/me/blogs/${id}/like`, {}, { headers: authHeaders(token) });
         } catch (e) {
-            console.error("handleUnlike error:", e);
             setBlogs(prev);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
             <Header />
 
-            <div className="bg-rose-600 pt-32 pb-24 text-center px-6">
-                <h1 className="text-4xl md:text-5xl font-black text-white italic">
-                    Your Favorites
+            <div style={{ background: "#1A1A18", paddingTop: "120px", paddingBottom: "80px", textAlign: "center", marginBottom: "-40px" }}>
+                <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "48px", fontWeight: 400, color: "#FAFAF8", margin: "0 0 8px" }}>
+                    Favorites
                 </h1>
-                <p className="text-rose-100 mt-2 text-sm font-medium">
-                    Every story that moved you, saved in one place.
+                <p style={{ fontSize: "15px", color: "#9B9B94", margin: 0 }}>
+                    Every story that moved you, saved in one place
                 </p>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 -mt-10">
-                <div className="flex mb-6">
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 32px 80px" }}>
+                <div style={{ marginBottom: "32px", paddingTop: "48px" }}>
                     <button
                         onClick={() => navigate("/blogs")}
-                        className="flex items-center gap-2 px-6 py-3 bg-white shadow-sm border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#4A4A44", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F5F3EE"}
+                        onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}
                     >
-                        <i className="fa-solid fa-arrow-left"></i> BACK TO FEED
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        BACK TO FEED
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-rose-600 mx-auto"></div>
+                    <div style={{ textAlign: "center", padding: "80px", display: "flex", justifyContent: "center" }}>
+                        <div style={{ width: "32px", height: "32px", border: "2px solid #ECEAE4", borderTopColor: "#1A1A18", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     </div>
                 ) : blogs.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
                         {blogs.map((blog) => (
                             <div
                                 key={blog.id}
                                 onClick={() => navigate(`/blogs/${blog.id}`)}
-                                className="bg-white border border-slate-200 rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer group"
+                                style={{ background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "16px", overflow: "hidden", cursor: "pointer", transition: "all 0.2s" }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                             >
-                                <div className="h-44 overflow-hidden rounded-xl mb-4 bg-slate-100">
+                                <div style={{ height: "180px", background: "#F0EDE5", overflow: "hidden" }}>
                                     {blog.imageUrl ? (
-                                        <img
-                                            src={blog.imageUrl}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
-                                            alt={blog.blogTitle}
-                                        />
+                                        <img src={blog.imageUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={blog.blogTitle} />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                            No image
+                                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="4" width="22" height="18" rx="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><circle cx="10" cy="11" r="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><path d="M3 19l6-5 4.5 4.5 3.5-3 7.5 5" stroke="#C4BFB4" strokeWidth="1.5" strokeLinejoin="round"/></svg>
                                         </div>
                                     )}
                                 </div>
-
-                                <h3 className="font-bold text-slate-900 text-lg mb-2 line-clamp-1">
-                                    {blog.blogTitle}
-                                </h3>
-
-                                <p className="text-sm text-slate-500 mb-4 line-clamp-2">
-                                    {blog.content}
-                                </p>
-
-                                <button
-                                    onClick={(e) => handleUnlike(e, blog.id)}
-                                    className="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-600 hover:text-white transition-all"
-                                >
-                                    <i className="fa-solid fa-heart-crack"></i> UNLIKE STORY
-                                </button>
+                                <div style={{ padding: "18px 20px" }}>
+                                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "19px", fontWeight: 400, color: "#1A1A18", margin: "0 0 8px", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                                        {blog.blogTitle}
+                                    </h3>
+                                    <p style={{ fontSize: "13px", color: "#6B6B65", margin: "0 0 16px", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                        {blog.content}
+                                    </p>
+                                    <button
+                                        onClick={(e) => handleUnlike(e, blog.id)}
+                                        style={{ width: "100%", padding: "10px", background: "#FFF5F5", border: "1px solid #FECACA", borderRadius: "8px", fontSize: "11.5px", fontWeight: 600, color: "#C0392B", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif", transition: "all 0.15s" }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "#C0392B"; e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#C0392B"; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "#FFF5F5"; e.currentTarget.style.color = "#C0392B"; e.currentTarget.style.borderColor = "#FECACA"; }}
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><path d="M6.5 11S1 7.5 1 4a3 3 0 015.5-1.7A3 3 0 0112 4c0 3.5-5.5 7-5.5 7z"/></svg>
+                                        UNLIKE
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white border border-slate-200 rounded-3xl p-20 text-center">
-                        <i className="fa-solid fa-heart text-slate-100 text-8xl mb-4"></i>
-                        <h2 className="text-2xl font-bold text-slate-900">
-                            No favorite stories yet
-                        </h2>
-                        <p className="text-slate-500 mt-2">
-                            Start exploring the feed and heart stories you enjoy.
-                        </p>
+                    <div style={{ textAlign: "center", padding: "80px 40px", background: "#FFFFFF", borderRadius: "20px", border: "1px solid #ECEAE4" }}>
+                        <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", margin: "0 0 8px" }}>No favorites yet</p>
+                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: 0 }}>Like stories in the feed and they'll appear here.</p>
                     </div>
                 )}
             </div>
 
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <Footer />
         </div>
     );

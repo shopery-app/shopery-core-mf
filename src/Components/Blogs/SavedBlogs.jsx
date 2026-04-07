@@ -16,120 +16,113 @@ const SavedBlogs = memo(() => {
     const fetchSaved = useCallback(async () => {
         const token = localStorage.getItem("accessToken");
         if (!token) return navigate("/signin");
-
         try {
             setLoading(true);
-            const res = await axios.get(`${apiURL}/users/me/blogs/save`, {
-                headers: authHeaders(token),
-            });
+            const res = await axios.get(`${apiURL}/users/me/blogs/save`, { headers: authHeaders(token) });
             setBlogs(res?.data?.data?.content || []);
         } catch (e) {
-            console.error("fetchSaved error:", e);
             setBlogs([]);
         } finally {
             setLoading(false);
         }
     }, [navigate]);
 
-    useEffect(() => {
-        fetchSaved();
-    }, [fetchSaved]);
+    useEffect(() => { fetchSaved(); }, [fetchSaved]);
 
     const handleUnsave = async (e, id) => {
         e.stopPropagation();
         const token = localStorage.getItem("accessToken");
         if (!token) return navigate("/signin");
-
         const prev = blogs;
-        setBlogs((curr) => curr.filter((b) => b.id !== id));
-
+        setBlogs((c) => c.filter((b) => b.id !== id));
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${id}/save`,
-                {},
-                { headers: authHeaders(token) }
-            );
+            await axios.post(`${apiURL}/users/me/blogs/${id}/save`, {}, { headers: authHeaders(token) });
         } catch (e) {
-            console.error("handleUnsave error:", e);
             setBlogs(prev);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
             <Header />
 
-            <div className="bg-indigo-600 pt-32 pb-24 text-center px-6">
-                <h1 className="text-4xl md:text-5xl font-black text-white">Reading List</h1>
-                <p className="text-indigo-100 mt-2 text-sm font-medium">
-                    Stories you've curated to read at your own pace.
+            <div style={{ background: "#2D2A52", paddingTop: "120px", paddingBottom: "80px", textAlign: "center", marginBottom: "-40px" }}>
+                <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "48px", fontWeight: 400, color: "#FAFAF8", margin: "0 0 8px" }}>
+                    Reading List
+                </h1>
+                <p style={{ fontSize: "15px", color: "#B0ADCC", margin: 0 }}>
+                    Stories you've curated to read at your own pace
                 </p>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 -mt-10">
-                <div className="flex mb-6">
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 32px 80px" }}>
+                <div style={{ marginBottom: "32px", paddingTop: "48px" }}>
                     <button
                         onClick={() => navigate("/blogs")}
-                        className="flex items-center gap-2 px-6 py-3 bg-white shadow-sm border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#4A4A44", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F5F3EE"}
+                        onMouseLeave={e => e.currentTarget.style.background = "#FFFFFF"}
                     >
-                        <i className="fa-solid fa-arrow-left"></i> BACK TO FEED
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        BACK TO FEED
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-indigo-600 mx-auto"></div>
+                    <div style={{ textAlign: "center", padding: "80px", display: "flex", justifyContent: "center" }}>
+                        <div style={{ width: "32px", height: "32px", border: "2px solid #ECEAE4", borderTopColor: "#2D2A52", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     </div>
                 ) : blogs.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
                         {blogs.map((blog) => (
                             <div
                                 key={blog.id}
                                 onClick={() => navigate(`/blogs/${blog.id}`)}
-                                className="bg-white border border-slate-200 rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer group"
+                                style={{ background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "16px", overflow: "hidden", cursor: "pointer", transition: "all 0.2s" }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                             >
-                                <div className="h-44 overflow-hidden rounded-xl mb-4 bg-slate-100">
+                                <div style={{ height: "180px", background: "#F0EDE5", overflow: "hidden" }}>
                                     {blog.imageUrl ? (
-                                        <img
-                                            src={blog.imageUrl}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
-                                            alt={blog.blogTitle}
-                                        />
+                                        <img src={blog.imageUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={blog.blogTitle} />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                            No image
+                                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="4" width="22" height="18" rx="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><circle cx="10" cy="11" r="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><path d="M3 19l6-5 4.5 4.5 3.5-3 7.5 5" stroke="#C4BFB4" strokeWidth="1.5" strokeLinejoin="round"/></svg>
                                         </div>
                                     )}
                                 </div>
-
-                                <h3 className="font-bold text-slate-900 text-lg mb-2 line-clamp-1">
-                                    {blog.blogTitle}
-                                </h3>
-
-                                <p className="text-sm text-slate-500 mb-4 line-clamp-2">
-                                    {blog.content}
-                                </p>
-
-                                <button
-                                    onClick={(e) => handleUnsave(e, blog.id)}
-                                    className="w-full py-3 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white transition-all"
-                                >
-                                    <i className="fa-solid fa-bookmark-slash"></i> REMOVE FROM LIST
-                                </button>
+                                <div style={{ padding: "18px 20px" }}>
+                                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "19px", fontWeight: 400, color: "#1A1A18", margin: "0 0 8px", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                                        {blog.blogTitle}
+                                    </h3>
+                                    <p style={{ fontSize: "13px", color: "#6B6B65", margin: "0 0 16px", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                        {blog.content}
+                                    </p>
+                                    <button
+                                        onClick={(e) => handleUnsave(e, blog.id)}
+                                        style={{ width: "100%", padding: "10px", background: "#F5F3FF", border: "1px solid #DDD8F0", borderRadius: "8px", fontSize: "11.5px", fontWeight: 600, color: "#5B52A3", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif", transition: "all 0.15s" }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "#2D2A52"; e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#2D2A52"; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#5B52A3"; e.currentTarget.style.borderColor = "#DDD8F0"; }}
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2a1 1 0 011-1h7a1 1 0 011 1v9.5l-4.5-2.5L2 11.5V2z" strokeLinejoin="round"/></svg>
+                                        REMOVE FROM LIST
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white border border-slate-200 rounded-3xl p-20 text-center">
-                        <i className="fa-solid fa-bookmark text-slate-100 text-8xl mb-4"></i>
-                        <h2 className="text-2xl font-bold text-slate-900">Your list is empty</h2>
-                        <p className="text-slate-500 mt-2">
-                            Found something interesting? Save it for later.
-                        </p>
+                    <div style={{ textAlign: "center", padding: "80px 40px", background: "#FFFFFF", borderRadius: "20px", border: "1px solid #ECEAE4" }}>
+                        <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", margin: "0 0 8px" }}>Your list is empty</p>
+                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: 0 }}>Found something interesting? Save it for later.</p>
                     </div>
                 )}
             </div>
 
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <Footer />
         </div>
     );

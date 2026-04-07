@@ -17,92 +17,103 @@ const ArchivedBlogs = () => {
 
     const fetchArchivedBlogs = useCallback(async () => {
         if (!token) return navigate("/signin");
-
         try {
             setLoading(true);
-            const res = await axios.get(`${apiURL}/users/me/blogs/archive`, {
-                headers: authHeaders(token),
-            });
+            const res = await axios.get(`${apiURL}/users/me/blogs/archive`, { headers: authHeaders(token) });
             setBlogs(res?.data?.data?.content || []);
         } catch (e) {
-            console.error("fetchArchivedBlogs error:", e);
             setBlogs([]);
-            showToast("Could not load archived blogs", "error");
+            showToast("Could not load archived stories", "error");
         } finally {
             setLoading(false);
         }
     }, [token, navigate, showToast]);
 
-    useEffect(() => {
-        fetchArchivedBlogs();
-    }, [fetchArchivedBlogs]);
+    useEffect(() => { fetchArchivedBlogs(); }, [fetchArchivedBlogs]);
 
     const handleUnarchive = async (id) => {
-        const prevBlogs = blogs;
-        setBlogs((curr) => curr.filter((b) => b.id !== id));
-
+        const prev = blogs;
+        setBlogs((c) => c.filter((b) => b.id !== id));
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${id}/archive`,
-                {},
-                { headers: authHeaders(token) }
-            );
-            showToast("Blog unarchived", "success");
+            await axios.post(`${apiURL}/users/me/blogs/${id}/archive`, {}, { headers: authHeaders(token) });
+            showToast("Story restored", "success");
         } catch (e) {
-            console.error("handleUnarchive error:", e);
-            setBlogs(prevBlogs);
-            showToast("Could not unarchive blog", "error");
+            setBlogs(prev);
+            showToast("Could not restore story", "error");
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
             <Header />
-            <div className="pt-32 pb-20 max-w-7xl mx-auto px-6">
-                <div className="flex justify-between items-center mb-12 gap-4 flex-wrap">
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "120px 32px 80px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "24px", marginBottom: "48px", flexWrap: "wrap" }}>
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 italic">ARCHIVED STORIES</h1>
-                        <p className="text-slate-500 font-medium">Hidden stories you can restore anytime.</p>
+                        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "48px", fontWeight: 400, color: "#1A1A18", margin: 0, lineHeight: 1.1 }}>
+                            Archive
+                        </h1>
+                        <p style={{ fontSize: "15px", color: "#9B9B94", margin: "6px 0 0" }}>Hidden stories you can restore anytime</p>
                     </div>
-
                     <button
                         onClick={() => navigate("/blogs/me")}
-                        className="px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-50"
+                        style={{ padding: "10px 20px", background: "transparent", border: "1px solid #DEDAD4", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#4A4A44", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F0EDE8"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                        BACK TO MY BLOGS
+                        MY WORKSHOP
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center font-bold text-slate-300">LOADING ARCHIVED STORIES...</div>
+                    <div style={{ textAlign: "center", padding: "80px", fontSize: "13px", fontWeight: 600, color: "#C4BFB4", letterSpacing: "0.08em" }}>
+                        LOADING ARCHIVE...
+                    </div>
                 ) : blogs.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
                         {blogs.map((blog) => (
-                            <div key={blog.id} className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
-                                <h3 className="text-lg font-black text-slate-900 mb-2">{blog.blogTitle}</h3>
-                                <p className="text-slate-600 text-sm leading-6 line-clamp-4 mb-5">{blog.content}</p>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleUnarchive(blog.id)}
-                                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700"
-                                    >
-                                        UNARCHIVE
-                                    </button>
-
-                                    <button
-                                        onClick={() => navigate(`/blogs/${blog.id}`)}
-                                        className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200"
-                                    >
-                                        VIEW
-                                    </button>
+                            <div key={blog.id} style={{ background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "16px", overflow: "hidden" }}>
+                                {blog.imageUrl && (
+                                    <div style={{ height: "160px", overflow: "hidden" }}>
+                                        <img src={blog.imageUrl} alt={blog.blogTitle} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(30%)" }} />
+                                    </div>
+                                )}
+                                <div style={{ padding: "20px" }}>
+                                    <div style={{ display: "inline-block", padding: "3px 10px", background: "#F0EDE8", borderRadius: "6px", fontSize: "10px", fontWeight: 600, color: "#9B9B94", letterSpacing: "0.08em", marginBottom: "12px" }}>
+                                        ARCHIVED
+                                    </div>
+                                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "19px", fontWeight: 400, color: "#1A1A18", margin: "0 0 10px", lineHeight: 1.3 }}>
+                                        {blog.blogTitle}
+                                    </h3>
+                                    <p style={{ fontSize: "13.5px", color: "#6B6B65", lineHeight: 1.65, margin: "0 0 18px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+                                        {blog.content}
+                                    </p>
+                                    <div style={{ display: "flex", gap: "10px" }}>
+                                        <button
+                                            onClick={() => handleUnarchive(blog.id)}
+                                            style={{ flex: 1, padding: "10px", background: "#1A1A18", color: "#FAFAF8", border: "none", borderRadius: "8px", fontSize: "11.5px", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif", transition: "background 0.15s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "#2C2C28"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "#1A1A18"}
+                                        >
+                                            RESTORE
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/blogs/${blog.id}`)}
+                                            style={{ flex: 1, padding: "10px", background: "transparent", color: "#4A4A44", border: "1px solid #ECEAE4", borderRadius: "8px", fontSize: "11.5px", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif", transition: "background 0.15s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "#F5F3EE"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                        >
+                                            VIEW
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-100">
-                        <h2 className="text-2xl font-bold text-slate-900">No archived stories.</h2>
+                    <div style={{ textAlign: "center", padding: "80px 40px", background: "#FFFFFF", borderRadius: "20px", border: "1px solid #ECEAE4" }}>
+                        <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", margin: "0 0 8px" }}>Nothing archived</p>
+                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: 0 }}>Stories you archive will appear here.</p>
                     </div>
                 )}
             </div>

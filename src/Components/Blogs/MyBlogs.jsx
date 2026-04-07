@@ -21,159 +21,103 @@ const MyBlogs = () => {
 
     const fetchMyBlogs = useCallback(async () => {
         if (!token) return navigate("/signin");
-
         try {
             setLoading(true);
-
             const [myBlogsRes, likedRes, savedRes] = await Promise.all([
                 axios.get(`${apiURL}/users/me/blogs`, { headers: authHeaders(token) }),
                 axios.get(`${apiURL}/users/me/blogs/like`, { headers: authHeaders(token) }),
                 axios.get(`${apiURL}/users/me/blogs/save`, { headers: authHeaders(token) }),
             ]);
-
             setBlogs(myBlogsRes?.data?.data?.content || []);
             setLikedIds(new Set((likedRes?.data?.data?.content || []).map((b) => b.id)));
             setSavedIds(new Set((savedRes?.data?.data?.content || []).map((b) => b.id)));
         } catch (e) {
-            console.error("fetchMyBlogs error:", e);
             setBlogs([]);
-            showToast("Could not load your blogs", "error");
+            showToast("Could not load your stories", "error");
         } finally {
             setLoading(false);
         }
     }, [token, navigate, showToast]);
 
-    useEffect(() => {
-        fetchMyBlogs();
-    }, [fetchMyBlogs]);
+    useEffect(() => { fetchMyBlogs(); }, [fetchMyBlogs]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this story permanently?")) return;
-
-        const prevBlogs = blogs;
-        setBlogs((curr) => curr.filter((b) => b.id !== id));
-
+        const prev = blogs;
+        setBlogs((c) => c.filter((b) => b.id !== id));
         try {
-            await axios.delete(`${apiURL}/users/me/blogs/${id}`, {
-                headers: authHeaders(token),
-            });
-            showToast("Blog deleted", "success");
+            await axios.delete(`${apiURL}/users/me/blogs/${id}`, { headers: authHeaders(token) });
+            showToast("Story deleted", "success");
         } catch (e) {
-            console.error("handleDelete error:", e);
-            setBlogs(prevBlogs);
-            showToast("Could not delete blog", "error");
+            setBlogs(prev);
+            showToast("Could not delete story", "error");
         }
     };
 
     const handleArchive = async (id) => {
         if (!window.confirm("Archive this story?")) return;
-
-        const prevBlogs = blogs;
-        setBlogs((curr) => curr.filter((b) => b.id !== id));
-
+        const prev = blogs;
+        setBlogs((c) => c.filter((b) => b.id !== id));
         try {
-            await axios.post(
-                `${apiURL}/users/me/blogs/${id}/archive`,
-                {},
-                { headers: authHeaders(token) }
-            );
-            showToast("Blog archived", "success");
+            await axios.post(`${apiURL}/users/me/blogs/${id}/archive`, {}, { headers: authHeaders(token) });
+            showToast("Story archived", "success");
         } catch (e) {
-            console.error("handleArchive error:", e);
-            setBlogs(prevBlogs);
-            showToast("Could not archive blog", "error");
+            setBlogs(prev);
+            showToast("Could not archive story", "error");
         }
     };
 
     const handleLike = async (id) => {
         const wasLiked = likedIds.has(id);
-
-        setLikedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-
-        setBlogs((prev) =>
-            prev.map((b) =>
-                b.id === id
-                    ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (wasLiked ? -1 : 1)) }
-                    : b
-            )
-        );
-
+        setLikedIds((p) => { const n = new Set(p); wasLiked ? n.delete(id) : n.add(id); return n; });
+        setBlogs((p) => p.map((b) => b.id === id ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (wasLiked ? -1 : 1)) } : b));
         try {
             await axios.post(`${apiURL}/users/me/blogs/${id}/like`, {}, { headers: authHeaders(token) });
         } catch (e) {
-            console.error("handleLike error:", e);
-
-            setLikedIds((prev) => {
-                const next = new Set(prev);
-                if (wasLiked) next.add(id);
-                else next.delete(id);
-                return next;
-            });
-
-            setBlogs((prev) =>
-                prev.map((b) =>
-                    b.id === id
-                        ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (wasLiked ? 1 : -1)) }
-                        : b
-                )
-            );
-
+            setLikedIds((p) => { const n = new Set(p); wasLiked ? n.add(id) : n.delete(id); return n; });
+            setBlogs((p) => p.map((b) => b.id === id ? { ...b, likeCount: Math.max(0, (b.likeCount || 0) + (wasLiked ? 1 : -1)) } : b));
             showToast("Could not update like", "error");
         }
     };
 
     const handleSave = async (id) => {
         const wasSaved = savedIds.has(id);
-
-        setSavedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-
+        setSavedIds((p) => { const n = new Set(p); wasSaved ? n.delete(id) : n.add(id); return n; });
         try {
             await axios.post(`${apiURL}/users/me/blogs/${id}/save`, {}, { headers: authHeaders(token) });
             showToast(wasSaved ? "Removed from reading list" : "Saved to reading list", "success");
         } catch (e) {
-            console.error("handleSave error:", e);
-            setSavedIds((prev) => {
-                const next = new Set(prev);
-                if (wasSaved) next.add(id);
-                else next.delete(id);
-                return next;
-            });
+            setSavedIds((p) => { const n = new Set(p); wasSaved ? n.add(id) : n.delete(id); return n; });
             showToast("Could not update save", "error");
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div style={{ minHeight: "100vh", background: "#FAFAF8", fontFamily: "'Instrument Sans', sans-serif" }}>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
             <Header />
-
-            <div className="pt-32 pb-20 max-w-7xl mx-auto px-6">
-                <div className="flex justify-between items-center mb-12 gap-4 flex-wrap">
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "120px 32px 80px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "24px", marginBottom: "48px", flexWrap: "wrap" }}>
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 italic">MY WORKSHOP</h1>
-                        <p className="text-slate-500 font-medium">Manage your published content.</p>
+                        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "48px", fontWeight: 400, color: "#1A1A18", margin: 0, lineHeight: 1.1 }}>
+                            My Workshop
+                        </h1>
+                        <p style={{ fontSize: "15px", color: "#9B9B94", margin: "6px 0 0" }}>Manage your published content</p>
                     </div>
-
-                    <div className="flex gap-3 flex-wrap">
+                    <div style={{ display: "flex", gap: "10px" }}>
                         <button
                             onClick={() => navigate("/blogs")}
-                            className="px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-50"
+                            style={{ padding: "10px 20px", background: "transparent", border: "1px solid #DEDAD4", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#4A4A44", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#F0EDE8"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                         >
-                            BACK TO FEED
+                            FEED
                         </button>
-
                         <button
                             onClick={() => navigate("/blogs/archived")}
-                            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700"
+                            style={{ padding: "10px 20px", background: "#F5F3FF", border: "1px solid #DDD8F0", borderRadius: "10px", fontSize: "12px", fontWeight: 600, color: "#5B52A3", cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#ECEAFF"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#F5F3FF"}
                         >
                             ARCHIVED
                         </button>
@@ -181,39 +125,38 @@ const MyBlogs = () => {
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center font-bold text-slate-300">LOADING YOUR STORIES...</div>
+                    <div style={{ textAlign: "center", padding: "80px", fontSize: "13px", fontWeight: 600, color: "#C4BFB4", letterSpacing: "0.08em" }}>
+                        LOADING YOUR STORIES...
+                    </div>
                 ) : blogs.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
                         {blogs.map((blog) => (
                             <BlogCard
                                 key={blog.id}
-                                blog={{
-                                    ...blog,
-                                    isLiked: likedIds.has(blog.id),
-                                    isSaved: savedIds.has(blog.id),
-                                }}
+                                blog={{ ...blog, isLiked: likedIds.has(blog.id), isSaved: savedIds.has(blog.id) }}
                                 isOwner={true}
                                 onDelete={handleDelete}
                                 onArchive={handleArchive}
                                 onEdit={(id) => navigate(`/blogs/edit/${id}`)}
                                 onLike={handleLike}
                                 onSave={handleSave}
+                                token={token}
                             />
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-100">
-                        <h2 className="text-2xl font-bold text-slate-900">No stories yet.</h2>
+                    <div style={{ textAlign: "center", padding: "80px 40px", background: "#FFFFFF", borderRadius: "20px", border: "1px solid #ECEAE4" }}>
+                        <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "24px", color: "#2C2C28", margin: "0 0 8px" }}>No stories yet</p>
+                        <p style={{ fontSize: "14px", color: "#9B9B94", margin: "0 0 24px" }}>Your workshop is empty. Head to the feed to write your first story.</p>
                         <button
                             onClick={() => navigate("/blogs")}
-                            className="mt-4 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs"
+                            style={{ padding: "11px 28px", background: "#1A1A18", color: "#FAFAF8", border: "none", borderRadius: "10px", fontSize: "12px", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", fontFamily: "'Instrument Sans', sans-serif" }}
                         >
-                            CREATE ONE IN FEED
+                            GO TO FEED
                         </button>
                     </div>
                 )}
             </div>
-
             <Footer />
         </div>
     );
