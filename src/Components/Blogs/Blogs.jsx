@@ -141,8 +141,9 @@ const Blogs = () => {
   const fetchBlogs = useCallback(async (query = "") => {
     try {
       setLoading(true);
-      const res = await axios.get(`${apiURL}/blogs`, {
-        params: query ? { blogTitle: query } : {},
+      const endpoint = query ? `${apiURL}/blogs/search` : `${apiURL}/blogs`;
+      const res = await axios.get(endpoint, {
+        params: query ? { query, page: 0, size: 10 } : {},
         headers: authHeaders(token),
       });
       setBlogs(getPageContent(res));
@@ -259,7 +260,7 @@ const Blogs = () => {
           <div style={S.searchBar}>
             <input
                 style={S.searchInput}
-                placeholder="Search by title..."
+                placeholder="Search blogs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && fetchBlogs(searchTerm.trim())}
