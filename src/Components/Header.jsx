@@ -1,6 +1,6 @@
 import React, { useState, useCallback, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { isAuthenticated, logout } from "../utils/auth";
+import { isAuthenticated } from "../utils/auth";
 import useCart from "../hooks/useCart";
 import useUserShop from "../hooks/useUserShop";
 import CreateShopModal from "./Modals/CreateShopModal";
@@ -67,7 +67,7 @@ const ShopStatusButton = memo(({ shopStatus, onCreateClick, navigate }) => {
 const LeagueButton = memo(({ authenticated, navigate }) => {
     const handleLeagueClick = () => {
         if (authenticated) {
-            window.open(LEAGUE_URL, "_blank", "noopener,noreferrer");
+            window.open(LEAGUE_URL, "_blank", "noopener, noreferrer");
             return;
         }
         navigate("/signin");
@@ -91,11 +91,6 @@ const Header = memo(() => {
     const navigate = useNavigate();
     const authenticated = useMemo(() => isAuthenticated(), []);
 
-    const handleLogout = useCallback(() => {
-        logout();
-        window.location.href = "/";
-    }, []);
-
     const handleShopCreated = useCallback(() => {
         setShowCreateModal(false);
         refetch();
@@ -111,22 +106,13 @@ const Header = memo(() => {
             <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/">
                 HOME
             </Link>
-            <Link
-                className="font-bold text-sm xl:text-base hover:text-gray-600"
-                to="/products"
-            >
+            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/products">
                 PRODUCTS
             </Link>
-            <Link
-                className="font-bold text-sm xl:text-base hover:text-gray-600"
-                to="/shops"
-            >
+            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/shops">
                 SHOPS
             </Link>
-            <Link
-                className="font-bold text-sm xl:text-base hover:text-gray-600"
-                to="/blogs"
-            >
+            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/blogs">
                 BLOGS
             </Link>
         </>
@@ -178,45 +164,25 @@ const Header = memo(() => {
                             </div>
                         )}
 
-                        <Link
-                            to="/cart"
-                            className="relative p-3 text-gray-600 hover:text-emerald-600"
-                        >
+                        <Link to="/cart" className="relative p-3 text-gray-600 hover:text-emerald-600">
                             <i className="fa-solid fa-shopping-cart text-xl" />
                             {itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
-                  {itemCount}
-                </span>
+                                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{itemCount}</span>
                             )}
                         </Link>
 
                         {authenticated ? (
                             <div className="flex items-center gap-3">
-                                <Link
-                                    to="/profile"
-                                    className="p-2 text-gray-600 hover:text-emerald-600"
-                                >
+                                <Link to="/profile" className="p-2 text-gray-600 hover:text-emerald-600">
                                     <i className="fa-solid fa-user-circle text-xl" />
                                 </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium"
-                                >
-                                    Logout
-                                </button>
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
-                                <Link
-                                    to="/signin"
-                                    className="hidden sm:block bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium"
-                                >
+                                <Link to="/signin" className="hidden sm:block bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium">
                                     Sign In
                                 </Link>
-                                <Link
-                                    to="/register"
-                                    className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-md"
-                                >
+                                <Link to="/register" className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-md">
                                     Sign Up
                                 </Link>
                             </div>
