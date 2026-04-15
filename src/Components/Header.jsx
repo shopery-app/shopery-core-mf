@@ -2,27 +2,34 @@ import React, { useState, useCallback, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { isAuthenticated } from "../utils/auth";
 import useCart from "../hooks/useCart";
+import useWishlist from "../hooks/useWishlist";
 import useUserShop from "../hooks/useUserShop";
 import CreateShopModal from "./Modals/CreateShopModal";
 
 const LEAGUE_URL = "https://shopery-league.vercel.app/";
 
 const NotificationBanner = memo(({ type, message, onClose }) => (
-    <div className="fixed top-4 right-4 z-50 max-w-sm">
-        <div
-            className={`${
-                type === "success" ? "bg-green-500" : "bg-red-500"
-            } text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3`}
-        >
-            <i
-                className={`fa-solid ${
-                    type === "success" ? "fa-check-circle" : "fa-exclamation-circle"
-                } text-xl`}
-            />
-            <p className="font-medium">{message}</p>
-            <button onClick={onClose} className="ml-4 text-white hover:text-gray-200">
-                <i className="fa-solid fa-times" />
-            </button>
+    <div style={{
+        position: "fixed", top: "16px", right: "16px", zIndex: 9999,
+        maxWidth: "360px",
+    }}>
+        <div style={{
+            background: type === "success" ? "#E8F5EE" : "#FEF2F2",
+            border: `1px solid ${type === "success" ? "#B8DFC8" : "#FECACA"}`,
+            borderRadius: "12px",
+            padding: "14px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "13px",
+            fontWeight: 500,
+            color: type === "success" ? "#2C6E49" : "#991B1B",
+            fontFamily: "'Instrument Sans', sans-serif",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+        }}>
+            <i className={`fa-solid ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`} />
+            <p style={{ margin: 0 }}>{message}</p>
+            <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "inherit", opacity: 0.6, fontSize: "16px", lineHeight: 1 }}>×</button>
         </div>
     </div>
 ));
@@ -32,61 +39,48 @@ const ShopStatusButton = memo(({ shopStatus, onCreateClick, navigate }) => {
         return (
             <button
                 onClick={onCreateClick}
-                className="relative bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-bold text-sm hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse"
+                style={S.shopBtn("gradient")}
             >
-                <i className="fa-solid fa-store mr-2" /> Start Making Money
-                <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-600 text-xs px-1.5 py-0.5 rounded-full font-bold">
-          NEW
-        </span>
+                <i className="fa-solid fa-store" style={{ marginRight: "6px" }} />
+                Start Selling
+                <span style={S.newPill}>NEW</span>
             </button>
         );
     }
-
     if (shopStatus === "PENDING") {
         return (
-            <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-2 rounded-full text-sm font-semibold">
-                <i className="fa-solid fa-clock animate-pulse" /> Shop Pending Approval
+            <div style={S.pendingPill}>
+                <i className="fa-solid fa-clock" style={{ marginRight: "6px", animation: "pulse 1.5s infinite" }} />
+                Pending Approval
             </div>
         );
     }
-
     if (shopStatus === "ACTIVE") {
         return (
-            <button
-                onClick={() => navigate(`/shop/dashboard`)}
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2 rounded-full font-bold text-sm hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
-            >
-                <i className="fa-solid fa-tachometer-alt" /> My Shop Dashboard
+            <button onClick={() => navigate("/shop/dashboard")} style={S.shopBtn("emerald")}>
+                <i className="fa-solid fa-tachometer-alt" style={{ marginRight: "6px" }} />
+                My Dashboard
             </button>
         );
     }
-
     return null;
 });
 
-const LeagueButton = memo(({ authenticated, navigate }) => {
-    const handleLeagueClick = () => {
-        if (authenticated) {
-            window.open(LEAGUE_URL, "_blank", "noopener, noreferrer");
-            return;
-        }
-        navigate("/signin");
-    };
-
-    return (
-        <button
-            onClick={handleLeagueClick}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 rounded-full font-bold text-sm hover:from-violet-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
-        >
-            <i className="fa-solid fa-trophy" /> Go to League
-        </button>
-    );
-});
+const LeagueButton = memo(({ authenticated, navigate }) => (
+    <button
+        onClick={() => authenticated ? window.open(LEAGUE_URL, "_blank", "noopener,noreferrer") : navigate("/signin")}
+        style={S.leagueBtn}
+    >
+        <i className="fa-solid fa-trophy" style={{ marginRight: "6px" }} />
+        League
+    </button>
+));
 
 const Header = memo(() => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [notification, setNotification] = useState(null);
     const { itemCount } = useCart();
+    const { itemCount: wishlistCount } = useWishlist();
     const { shop, shopStatus, refetch } = useUserShop();
     const navigate = useNavigate();
     const authenticated = useMemo(() => isAuthenticated(), []);
@@ -94,32 +88,14 @@ const Header = memo(() => {
     const handleShopCreated = useCallback(() => {
         setShowCreateModal(false);
         refetch();
-        setNotification({
-            type: "success",
-            message: "Shop submitted! You'll be notified once it's approved.",
-        });
+        setNotification({ type: "success", message: "Shop submitted! You'll be notified once it's approved." });
         setTimeout(() => setNotification(null), 5000);
     }, [refetch]);
 
-    const NavLinks = (
-        <>
-            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/">
-                HOME
-            </Link>
-            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/products">
-                PRODUCTS
-            </Link>
-            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/shops">
-                SHOPS
-            </Link>
-            <Link className="font-bold text-sm xl:text-base hover:text-gray-600" to="/blogs">
-                BLOGS
-            </Link>
-        </>
-    );
-
     return (
         <>
+            <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+
             {notification && (
                 <NotificationBanner
                     type={notification.type}
@@ -135,63 +111,244 @@ const Header = memo(() => {
                 />
             )}
 
-            <header className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md shadow-lg z-40 border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 lg:px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="flex items-center space-x-3 group">
-                            <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <i className="fa-solid fa-leaf text-white text-xl" />
+            <header style={S.header}>
+                <div style={S.inner}>
+                    {/* Logo */}
+                    <div style={S.left}>
+                        <Link to="/" style={S.logoLink}>
+                            <div style={S.logoBox}>
+                                <i className="fa-solid fa-leaf" style={{ color: "#FAFAF8", fontSize: "18px" }} />
                             </div>
-                            <span className="text-2xl font-bold text-gray-800">Shopery</span>
+                            <span style={S.logoText}>Shopery</span>
                         </Link>
 
-                        <nav className="hidden lg:flex gap-8 items-center">{NavLinks}</nav>
+                        <nav style={S.nav}>
+                            {[
+                                { label: "Home", to: "/" },
+                                { label: "Products", to: "/products" },
+                                { label: "Shops", to: "/shops" },
+                                { label: "Blogs", to: "/blogs" },
+                            ].map(({ label, to }) => (
+                                <Link key={label} to={to} style={S.navLink}>{label}</Link>
+                            ))}
+                        </nav>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="hidden lg:block">
-                            <LeagueButton authenticated={authenticated} navigate={navigate} />
-                        </div>
+                    {/* Right actions */}
+                    <div style={S.right}>
+                        <LeagueButton authenticated={authenticated} navigate={navigate} />
 
                         {authenticated && (
-                            <div className="hidden lg:block">
-                                <ShopStatusButton
-                                    shopStatus={shopStatus}
-                                    shop={shop}
-                                    onCreateClick={() => setShowCreateModal(true)}
-                                    navigate={navigate}
-                                />
-                            </div>
+                            <ShopStatusButton
+                                shopStatus={shopStatus}
+                                shop={shop}
+                                onCreateClick={() => setShowCreateModal(true)}
+                                navigate={navigate}
+                            />
                         )}
 
-                        <Link to="/cart" className="relative p-3 text-gray-600 hover:text-emerald-600">
-                            <i className="fa-solid fa-shopping-cart text-xl" />
-                            {itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{itemCount}</span>
+                        {/* Wishlist icon */}
+                        <Link to="/wishlist" style={S.iconBtn} title="Wishlist">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                            {wishlistCount > 0 && (
+                                <span style={{ ...S.badge, background: "#E8321C" }}>{wishlistCount}</span>
                             )}
                         </Link>
 
+                        {/* Cart icon → full cart page */}
+                        <Link to="/cart" style={S.iconBtn} title="Cart">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <circle cx="9" cy="21" r="1"/>
+                                <circle cx="20" cy="21" r="1"/>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                            </svg>
+                            {itemCount > 0 && (
+                                <span style={S.badge}>{itemCount}</span>
+                            )}
+                        </Link>
+
+                        {/* Auth */}
                         {authenticated ? (
-                            <div className="flex items-center gap-3">
-                                <Link to="/profile" className="p-2 text-gray-600 hover:text-emerald-600">
-                                    <i className="fa-solid fa-user-circle text-xl" />
-                                </Link>
-                            </div>
+                            <Link to="/profile" style={S.iconBtn} title="Profile">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </Link>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <Link to="/signin" className="hidden sm:block bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium">
-                                    Sign In
-                                </Link>
-                                <Link to="/register" className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-md">
-                                    Sign Up
-                                </Link>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <Link to="/signin" style={S.signInBtn}>Sign In</Link>
+                                <Link to="/register" style={S.signUpBtn}>Sign Up</Link>
                             </div>
                         )}
                     </div>
                 </div>
             </header>
+
+            <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
         </>
     );
 });
 
+Header.displayName = "Header";
 export default Header;
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const S = {
+    header: {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "72px",
+        background: "rgba(250,250,248,0.96)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #ECEAE4",
+        zIndex: 40,
+        fontFamily: "'Instrument Sans', sans-serif",
+    },
+    inner: {
+        maxWidth: "1280px",
+        margin: "0 auto",
+        padding: "0 28px",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    left: { display: "flex", alignItems: "center", gap: "40px" },
+    logoLink: { display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" },
+    logoBox: {
+        width: "38px",
+        height: "38px",
+        background: "#1A1A18",
+        borderRadius: "10px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    logoText: {
+        fontFamily: "'DM Serif Display', serif",
+        fontSize: "20px",
+        fontWeight: 400,
+        color: "#1A1A18",
+    },
+    nav: { display: "flex", gap: "28px" },
+    navLink: {
+        fontSize: "13px",
+        fontWeight: 600,
+        color: "#4A4A44",
+        textDecoration: "none",
+        letterSpacing: "0.02em",
+        transition: "color 0.12s",
+    },
+    right: { display: "flex", alignItems: "center", gap: "10px" },
+    iconBtn: {
+        position: "relative",
+        width: "38px",
+        height: "38px",
+        borderRadius: "10px",
+        background: "#F7F6F3",
+        border: "1px solid #ECEAE4",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#2C2C28",
+        textDecoration: "none",
+        transition: "background 0.12s",
+    },
+    badge: {
+        position: "absolute",
+        top: "-5px",
+        right: "-5px",
+        minWidth: "18px",
+        height: "18px",
+        background: "#1A1A18",
+        color: "#FAFAF8",
+        fontSize: "10px",
+        fontWeight: 700,
+        borderRadius: "9px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 4px",
+        border: "1.5px solid #FAFAF8",
+    },
+    leagueBtn: {
+        padding: "8px 16px",
+        background: "linear-gradient(135deg, #5B21B6, #4338CA)",
+        color: "#FAFAF8",
+        border: "none",
+        borderRadius: "10px",
+        fontSize: "12px",
+        fontWeight: 600,
+        cursor: "pointer",
+        letterSpacing: "0.03em",
+        fontFamily: "'Instrument Sans', sans-serif",
+        display: "flex",
+        alignItems: "center",
+    },
+    shopBtn: (variant) => ({
+        padding: "8px 16px",
+        background: variant === "gradient"
+            ? "linear-gradient(135deg, #F97316, #EF4444)"
+            : "linear-gradient(135deg, #16A34A, #15803D)",
+        color: "#FAFAF8",
+        border: "none",
+        borderRadius: "10px",
+        fontSize: "12px",
+        fontWeight: 600,
+        cursor: "pointer",
+        letterSpacing: "0.03em",
+        fontFamily: "'Instrument Sans', sans-serif",
+        display: "flex",
+        alignItems: "center",
+        position: "relative",
+    }),
+    newPill: {
+        marginLeft: "6px",
+        background: "#FBBF24",
+        color: "#92400E",
+        fontSize: "9px",
+        fontWeight: 800,
+        borderRadius: "5px",
+        padding: "1px 5px",
+        letterSpacing: "0.04em",
+    },
+    pendingPill: {
+        padding: "8px 14px",
+        background: "#FFFBEB",
+        border: "1px solid #FDE68A",
+        borderRadius: "10px",
+        fontSize: "12px",
+        fontWeight: 600,
+        color: "#92400E",
+        display: "flex",
+        alignItems: "center",
+    },
+    signInBtn: {
+        padding: "8px 16px",
+        background: "#F7F6F3",
+        border: "1px solid #ECEAE4",
+        borderRadius: "10px",
+        fontSize: "12px",
+        fontWeight: 600,
+        color: "#4A4A44",
+        textDecoration: "none",
+    },
+    signUpBtn: {
+        padding: "8px 16px",
+        background: "#1A1A18",
+        border: "1px solid #1A1A18",
+        borderRadius: "10px",
+        fontSize: "12px",
+        fontWeight: 600,
+        color: "#FAFAF8",
+        textDecoration: "none",
+    },
+};

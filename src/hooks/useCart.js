@@ -1,14 +1,17 @@
 import { useSelector, useDispatch } from "react-redux";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   addProductToCart,
   addToLocalCart,
-  removeFromLocalCart,
-  updateLocalCartQuantity,
-  clearLocalCart,
+  removeProductFromCartAPI,
+  updateCartQuantityAPI,
+  clearCartAPI,
   fetchCart,
   cacheProductDetails,
   clearError,
+  clearCheckoutError,
+  checkoutAPI,
+  fetchMyOrders,
   selectCartItems,
   selectCartTotal,
   selectCartItemCount,
@@ -17,11 +20,12 @@ import {
   selectIsLocalCart,
   showCartSuccess,
   hideCartSuccess,
-  toggleCartSidebar,
-  setCartOpen,
   selectShowSuccessMessage,
   selectLastAddedItem,
-  selectIsCartOpen,
+  selectOrders,
+  selectOrdersLoading,
+  selectCheckoutLoading,
+  selectCheckoutError,
 } from "../store/reducers/cartReducer";
 
 export const useCart = () => {
@@ -35,117 +39,82 @@ export const useCart = () => {
   const isLocal = useSelector(selectIsLocalCart);
   const showSuccessMessage = useSelector(selectShowSuccessMessage);
   const lastAddedItem = useSelector(selectLastAddedItem);
-  const isCartOpen = useSelector(selectIsCartOpen);
+  const orders = useSelector(selectOrders);
+  const ordersLoading = useSelector(selectOrdersLoading);
+  const checkoutLoading = useSelector(selectCheckoutLoading);
+  const checkoutError = useSelector(selectCheckoutError);
+
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
 
   const addToCart = useCallback(
-    async (productId, quantity = 1, productData = null) => {
-      const token = localStorage.getItem("accessToken");
-
-      if (token) {
-        const action = await dispatch(
-          addProductToCart({ productId, quantity, productData })
-        );
-
-        // Thunk fallback verdiyində və ya reject olduqda local-a əlavə et
-        if (
-          addProductToCart.rejected.match(action) ||
-          action?.payload?.fallbackToLocal
-        ) {
-          dispatch(addToLocalCart({ productId, quantity, productData }));
+      async (productId, quantity = 1, productData = null) => {
+        const action = await dispatch(addProductToCart({ productId, quantity, productData }));
+        if (productData) {
+          dispatch(cacheProductDetails({ productId, productData }));
+          dispatch(showCartSuccess(productData));
         }
-      } else {
-        dispatch(addToLocalCart({ productId, quantity, productData }));
-      }
-
-      if (productData) {
-        dispatch(cacheProductDetails({ productId, productData }));
-        dispatch(showCartSuccess(productData));
-      }
-    },
-    [dispatch]
+        return action;
+      },
+      [dispatch]
   );
-
-  const hideSuccessMessage = useCallback(() => {
-    dispatch(hideCartSuccess());
-  }, [dispatch]);
-
-  const toggleCart = useCallback(() => {
-    dispatch(toggleCartSidebar());
-  }, [dispatch]);
-
-  const openCart = useCallback(() => {
-    dispatch(setCartOpen(true));
-  }, [dispatch]);
-
-  const closeCart = useCallback(() => {
-    dispatch(setCartOpen(false));
-  }, [dispatch]);
 
   const removeFromCart = useCallback(
-    (productId) => {
-      dispatch(removeFromLocalCart({ productId }));
-    },
-    [dispatch]
-  );
-
-  const removeProductFromCart = useCallback(
-    (productId) => {
-      removeFromCart(productId);
-    },
-    [removeFromCart]
+      (productId) => dispatch(removeProductFromCartAPI(productId)),
+      [dispatch]
   );
 
   const updateQuantity = useCallback(
-    (productId, quantity) => {
-      dispatch(updateLocalCartQuantity({ productId, quantity }));
-    },
-    [dispatch]
+      (productId, quantity) => {
+        if (quantity <= 0) { dispatch(removeProductFromCartAPI(productId)); return; }
+        dispatch(updateCartQuantityAPI({ productId, quantity }));
+      },
+      [dispatch]
   );
 
   const increaseProductQuantity = useCallback(
-    (productId) => {
-      const item = cartItems.find((i) => i.productId === productId);
-      if (item) updateQuantity(productId, item.quantity + 1);
-    },
-    [cartItems, updateQuantity]
+      (productId) => {
+        const item = cartItems.find((i) => String(i.productId) === String(productId));
+        if (item) updateQuantity(productId, item.quantity + 1);
+      },
+      [cartItems, updateQuantity]
   );
 
   const decreaseProductQuantity = useCallback(
-    (productId) => {
-      const item = cartItems.find((i) => i.productId === productId);
-      if (item && item.quantity > 1)
-        updateQuantity(productId, item.quantity - 1);
-      else if (item) removeFromCart(productId);
-    },
-    [cartItems, updateQuantity, removeFromCart]
+      (productId) => {
+        const item = cartItems.find((i) => String(i.productId) === String(productId));
+        if (!item) return;
+        if (item.quantity > 1) updateQuantity(productId, item.quantity - 1);
+        else removeFromCart(productId);
+      },
+      [cartItems, updateQuantity, removeFromCart]
   );
 
-  const clearCart = useCallback(() => {
-    dispatch(clearLocalCart());
+  const clearCart = useCallback(() => dispatch(clearCartAPI()), [dispatch]);
+
+  const refreshCart = useCallback(() => dispatch(fetchCart()), [dispatch]);
+
+  const clearCartError = useCallback(() => dispatch(clearError()), [dispatch]);
+
+  const hideSuccessMessage = useCallback(() => dispatch(hideCartSuccess()), [dispatch]);
+
+  const checkout = useCallback(async () => {
+    const action = await dispatch(checkoutAPI());
+    if (!checkoutAPI.rejected.match(action)) dispatch(fetchCart());
+    return action;
   }, [dispatch]);
 
-  const refreshCart = useCallback(() => {
-    if (typeof fetchCart === "function") dispatch(fetchCart());
-  }, [dispatch]);
-
-  const clearCartError = useCallback(() => {
-    dispatch(clearError());
-  }, [dispatch]);
+  const loadMyOrders = useCallback(() => dispatch(fetchMyOrders()), [dispatch]);
 
   const getItemQuantity = useCallback(
-    (productId) =>
-      cartItems.find((i) => i.productId === productId)?.quantity || 0,
-    [cartItems]
+      (productId) => cartItems.find((i) => String(i.productId) === String(productId))?.quantity || 0,
+      [cartItems]
   );
 
   const isItemInCart = useCallback(
-    (productId) => cartItems.some((i) => i.productId === productId),
-    [cartItems]
-  );
-
-  const getCartItemById = useCallback(
-    (productId) => cartItems.find((i) => i.productId === productId),
-    [cartItems]
+      (productId) => cartItems.some((i) => String(i.productId) === String(productId)),
+      [cartItems]
   );
 
   return {
@@ -155,6 +124,12 @@ export const useCart = () => {
     loading,
     error,
     isLocal,
+    showSuccessMessage,
+    lastAddedItem,
+    orders,
+    ordersLoading,
+    checkoutLoading,
+    checkoutError,
 
     addToCart,
     removeFromCart,
@@ -164,20 +139,13 @@ export const useCart = () => {
     clearCart,
     refreshCart,
     clearCartError,
-
-    showSuccessMessage,
-    lastAddedItem,
-    isCartOpen,
-
     hideSuccessMessage,
-    removeProductFromCart,
-    toggleCart,
-    openCart,
-    closeCart,
-
+    checkout,
+    loadMyOrders,
     getItemQuantity,
     isItemInCart,
-    getCartItemById,
+
+    removeProductFromCart: removeFromCart,
   };
 };
 
