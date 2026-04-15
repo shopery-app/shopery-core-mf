@@ -42,6 +42,8 @@ const CartItem = memo(({ item, onInc, onDec, onRemove }) => {
     const displayOriginal = originalPrice || Number(product?.discountDto?.originalPrice || 0);
     const displayDiscount = discountPct || product?.discountDto?.percentage || 0;
     const displayCategory = category || (typeof product?.category === "object" ? product?.category?.name : product?.category) || "";
+    const stock = Number(product?.stockQuantity ?? item?.productData?.stockQuantity ?? 0);
+    const cannotIncrease = stock > 0 && quantity >= stock;
     const total = displayPrice * quantity;
     const [imgError, setImgError] = useState(false);
 
@@ -73,7 +75,13 @@ const CartItem = memo(({ item, onInc, onDec, onRemove }) => {
                     <div style={S.qtyRow}>
                         <button onClick={() => onDec(productId)} disabled={quantity <= 1} style={S.qBtn(quantity <= 1)}>−</button>
                         <span style={S.qVal}>{quantity}</span>
-                        <button onClick={() => onInc(productId)} style={S.qBtn(false)}>+</button>
+                        <button
+                            onClick={() => !cannotIncrease && onInc(productId)}
+                            disabled={cannotIncrease}
+                            style={S.qBtn(cannotIncrease)}
+                        >
+                            +
+                        </button>
                     </div>
 
                     <div style={S.itemPrices}>
