@@ -52,12 +52,6 @@ const ShopCard = memo(({ shop, index, onVisit }) => (
             {shop.rating || "4.8"}
           </span>
           </div>
-          <div className="text-right">
-            <div className="text-gray-500 text-xs">Products</div>
-            <div className="text-gray-800 font-bold">
-              {shop.products?.length ?? 0}
-            </div>
-          </div>
         </div>
 
         <button

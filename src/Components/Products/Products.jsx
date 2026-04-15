@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, memo, useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useProducts } from "../../hooks/useProducts";
 import useCart from "../../hooks/useCart";
 import useWishlist from "../../hooks/useWishlist";
@@ -17,10 +16,8 @@ const LoadingSpinner = memo(() => (
 LoadingSpinner.displayName = "LoadingSpinner";
 
 const ProductCard = memo(({ product }) => {
-  const navigate = useNavigate();
-  const { addToCart, isItemInCart, getItemQuantity } = useCart();
-  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const token = localStorage.getItem("accessToken");
+  const { addToCart, isItemInCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
@@ -31,9 +28,7 @@ const ProductCard = memo(({ product }) => {
   const description = product?.description || "";
   const imageUrl = product?.imageUrl || "";
   const currentPrice = Number(product?.currentPrice || product?.price || 0);
-  const originalPrice = Number(
-      product?.discountDto?.originalPrice || product?.originalPrice || 0
-  );
+  const originalPrice = Number(product?.discountDto?.originalPrice || product?.originalPrice || 0);
   const discountPct = product?.discountDto?.percentage ||
       (originalPrice > currentPrice
           ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
@@ -48,19 +43,9 @@ const ProductCard = memo(({ product }) => {
       (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        if (!token) {
-          navigate("/signin");
-          return;
-        }
-
-        if (inWish) {
-          removeFromWishlist(id);
-        } else {
-          addToWishlist(id);
-        }
+        toggleWishlist(id);
       },
-      [inWish, id, token, navigate, addToWishlist, removeFromWishlist]
+      [toggleWishlist, id]
   );
 
   const handleAddToCart = useCallback(

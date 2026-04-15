@@ -2,14 +2,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { useCallback, useEffect } from "react";
 import {
   addProductToCart,
-  addToLocalCart,
   removeProductFromCartAPI,
   updateCartQuantityAPI,
   clearCartAPI,
   fetchCart,
   cacheProductDetails,
   clearError,
-  clearCheckoutError,
   checkoutAPI,
   fetchMyOrders,
   selectCartItems,
@@ -50,14 +48,34 @@ export const useCart = () => {
 
   const addToCart = useCallback(
       async (productId, quantity = 1, productData = null) => {
-        const action = await dispatch(addProductToCart({ productId, quantity, productData }));
+        const existingItem = cartItems.find((i) => String(i.productId) === String(productId));
+        const currentQty = existingItem?.quantity || 0;
+        const stock = Number(
+            existingItem?.product?.stockQuantity ??
+            existingItem?.productData?.stockQuantity ??
+            productData?.stockQuantity ??
+            0
+        );
+
+        const safeQuantity =
+            stock > 0 ? Math.min(quantity, Math.max(stock - currentQty, 0)) : quantity;
+
+        if (stock > 0 && safeQuantity <= 0) {
+          return null;
+        }
+
+        const action = await dispatch(
+            addProductToCart({ productId, quantity: safeQuantity, productData })
+        );
+
         if (productData) {
           dispatch(cacheProductDetails({ productId, productData }));
           dispatch(showCartSuccess(productData));
         }
+
         return action;
       },
-      [dispatch]
+      [dispatch, cartItems]
   );
 
   const removeFromCart = useCallback(
@@ -76,7 +94,15 @@ export const useCart = () => {
   const increaseProductQuantity = useCallback(
       (productId) => {
         const item = cartItems.find((i) => String(i.productId) === String(productId));
-        if (item) updateQuantity(productId, item.quantity + 1);
+        if (!item) return;
+
+        const stock = Number(item.product?.stockQuantity ?? item.productData?.stockQuantity ?? 0);
+
+        if (stock > 0 && item.quantity >= stock) {
+          return;
+        }
+
+        updateQuantity(productId, item.quantity + 1);
       },
       [cartItems, updateQuantity]
   );

@@ -580,8 +580,8 @@ const ProfileDashboard = () => {
                   <h3 className="text-xl font-bold text-gray-800 mb-6">Quick Actions</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { to: "/orders", icon: "fa-box", title: "My Orders", desc: "View order history" },
-                      { to: "/wishlist", icon: "fa-heart", title: "Wishlist", desc: "Saved items" },
+                      { to: "/cart", icon: "fa-box", title: "Cart", desc: "Go to Cart" },
+                      { to: "/wishlist", icon: "fa-heart", title: "Wishlist", desc: "View Saved items" },
                       { to: "/profile/addresses", icon: "fa-location-dot", title: "Addresses", desc: "Manage addresses" },
                       { to: "/profile/settings", icon: "fa-gear", title: "Settings", desc: "Account settings" },
                     ].map(({ to, icon, title, desc }) => (

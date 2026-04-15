@@ -171,8 +171,20 @@ const cartSlice = createSlice({
     addToLocalCart: (state, action) => {
       const { productId, quantity = 1, productData = null } = action.payload;
       const idx = state.localItems.findIndex((x) => x.productId === productId);
-      if (idx > -1) { state.localItems[idx].quantity += quantity; }
-      else { state.localItems.push({ productId, quantity, productData }); }
+
+      const cached = state.productDetailsCache[productId];
+      const stock = Number(productData?.stockQuantity ?? cached?.stockQuantity ?? 0);
+
+      if (idx > -1) {
+        const nextQty = state.localItems[idx].quantity + quantity;
+        state.localItems[idx].quantity = stock > 0 ? Math.min(nextQty, stock) : nextQty;
+      } else {
+        const safeQty = stock > 0 ? Math.min(quantity, stock) : quantity;
+        if (safeQty > 0) {
+          state.localItems.push({ productId, quantity: safeQty, productData });
+        }
+      }
+
       if (productData) state.productDetailsCache[productId] = productData;
       state.lastAddedItem = productData;
       state.showSuccess = Boolean(productData);
@@ -185,7 +197,16 @@ const cartSlice = createSlice({
     updateLocalCartQuantity: (state, action) => {
       const { productId, quantity } = action.payload;
       const it = state.localItems.find((x) => x.productId === productId);
-      if (it) it.quantity = Math.max(1, Number(quantity || 1));
+      if (!it) return;
+
+      const cached = state.productDetailsCache[productId];
+      const stock = Number(it.productData?.stockQuantity ?? cached?.stockQuantity ?? 0);
+
+      const safeQty = stock > 0
+          ? Math.min(Math.max(1, Number(quantity || 1)), stock)
+          : Math.max(1, Number(quantity || 1));
+
+      it.quantity = safeQty;
       recalcLocal(state);
     },
     clearLocalCart: (state) => { state.localItems = []; state.localTotalPrice = 0; },
