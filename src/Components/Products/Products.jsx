@@ -1,8 +1,12 @@
 import React, { Suspense, lazy, memo, useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProducts } from "../../hooks/useProducts";
-import { useCart } from "../../hooks/useCart";
+import useCart from "../../hooks/useCart";
+import useWishlist from "../../hooks/useWishlist";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
+
+const fmt = (n) => Number(n || 0).toFixed(2);
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
@@ -12,83 +16,219 @@ const LoadingSpinner = memo(() => (
 ));
 LoadingSpinner.displayName = "LoadingSpinner";
 
-const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity }) => {
-  const [imageError, setImageError] = useState(false);
+const ProductCard = memo(({ product }) => {
+  const navigate = useNavigate();
+  const { addToCart, isItemInCart, getItemQuantity } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const token = localStorage.getItem("accessToken");
 
-  const handleImageError = useCallback(() => {
-    setImageError(true);
-  }, []);
+  const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  const handleAddClick = useCallback(
-    (e) => {
-      e.preventDefault();
-      onAddToCart(product);
-    },
-    [onAddToCart, product],
+  const id = product?.id;
+  const name = product?.productName || "Product";
+  const description = product?.description || "";
+  const imageUrl = product?.imageUrl || "";
+  const currentPrice = Number(product?.currentPrice || product?.price || 0);
+  const originalPrice = Number(
+      product?.discountDto?.originalPrice || product?.originalPrice || 0
   );
+  const discountPct = product?.discountDto?.percentage ||
+      (originalPrice > currentPrice
+          ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+          : 0);
+  const stock = product?.stockQuantity;
+  const inStock = stock === undefined || stock === null ? true : stock > 0;
+  const maxQty = stock > 0 ? stock : 99;
+  const inCart = isItemInCart(id);
+  const inWish = isInWishlist(id);
+
+  const handleWishlist = useCallback(
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!token) {
+          navigate("/signin");
+          return;
+        }
+
+        if (inWish) {
+          removeFromWishlist(id);
+        } else {
+          addToWishlist(id);
+        }
+      },
+      [inWish, id, token, navigate, addToWishlist, removeFromWishlist]
+  );
+
+  const handleAddToCart = useCallback(
+      async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!inStock) return;
+        setAdding(true);
+        await addToCart(id, qty, {
+          id,
+          productName: name,
+          imageUrl,
+          currentPrice,
+          originalPrice,
+          discountPct,
+          stockQuantity: stock,
+          category: product?.category,
+        });
+        setAdding(false);
+      },
+      [addToCart, id, qty, name, imageUrl, currentPrice, inStock, stock]
+  );
+
+  const incQty = (e) => { e.stopPropagation(); setQty((q) => Math.min(q + 1, maxQty)); };
+  const decQty = (e) => { e.stopPropagation(); setQty((q) => Math.max(q - 1, 1)); };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group border border-gray-100 transform hover:-translate-y-1">
-      <div className="relative overflow-hidden bg-gray-100 h-64">
-        {!imageError && product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.productName}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            onError={handleImageError}
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <i className="fa-solid fa-image text-4xl text-gray-300"></i>
-          </div>
-        )}
-
-        <div className="absolute top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase">
-          {product.condition}
-        </div>
-      </div>
-
-      <div className="p-5">
-        <h3 className="font-bold text-lg text-gray-800 mb-2 line-clamp-2 group-hover:text-emerald-600 transition-colors">{product.productName}</h3>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-emerald-600">${product.currentPrice?.toFixed(0)}</span>
-            {product.originalPrice &&
-              product.originalPrice > product.currentPrice && (
-                <span className="text-lg text-gray-400 line-through">${product.originalPrice.toFixed(0)}</span>
-              )}
-          </div>
-        </div>
-
-        <button
-          onClick={handleAddClick}
-          disabled={isInCart}
-          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-            isInCart
-              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "bg-emerald-600 text-white hover:bg-emerald-700 transform hover:scale-105 shadow-lg"
-          }`}
-        >
-          {isInCart ? (
-            <>
-              <i className="fa-solid fa-check"></i>
-              In Cart ({cartQuantity})
-            </>
+      <div style={styles.card}>
+        {/* Image */}
+        <div style={styles.imageWrap}>
+          {!imgError && imageUrl ? (
+              <img
+                  src={imageUrl}
+                  alt={name}
+                  style={styles.image}
+                  onError={() => setImgError(true)}
+                  loading="lazy"
+              />
           ) : (
-            <>
-              <i className="fa-solid fa-cart-plus"></i>
-              Add to Cart
-            </>
+              <div style={styles.imagePlaceholder}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <rect x="4" y="6" width="28" height="24" rx="3" stroke="#C4BFB4" strokeWidth="1.5"/>
+                  <circle cx="13" cy="15" r="3" stroke="#C4BFB4" strokeWidth="1.5"/>
+                  <path d="M4 26l8-7 6 6 5-4 9 6" stroke="#C4BFB4" strokeWidth="1.5" strokeLinejoin="round"/>
+                </svg>
+              </div>
           )}
-        </button>
+
+          {/* Discount badge */}
+          {discountPct > 0 && (
+              <div style={styles.discountBadge}>
+                <span style={styles.discountText}>−{discountPct}%</span>
+              </div>
+          )}
+
+          {/* Out of stock overlay */}
+          {!inStock && (
+              <div style={styles.outOfStockOverlay}>
+                <span style={styles.outOfStockText}>Out of Stock</span>
+              </div>
+          )}
+
+          {/* Wishlist button */}
+          <button
+              onClick={handleWishlist}
+              style={{
+                ...styles.wishBtn,
+                background: inWish ? "#1A1A18" : "rgba(255,255,255,0.92)",
+                color: inWish ? "#FAFAF8" : "#1A1A18",
+              }}
+              title={inWish ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill={inWish ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={styles.body}>
+          {product?.category && (
+              <span style={styles.categoryChip}>
+            {typeof product.category === "object" ? product.category.name : product.category}
+          </span>
+          )}
+
+          <h3 style={styles.name} title={name}>{name}</h3>
+
+          {description && (
+              <p style={styles.description}>{description}</p>
+          )}
+
+          {/* Price row */}
+          <div style={styles.priceRow}>
+            <span style={styles.price}>${fmt(currentPrice)}</span>
+            {originalPrice > currentPrice && (
+                <span style={styles.originalPrice}>${fmt(originalPrice)}</span>
+            )}
+            {discountPct > 0 && (
+                <span style={styles.saveBadge}>Save ${fmt(originalPrice - currentPrice)}</span>
+            )}
+          </div>
+
+          {/* Stock indicator */}
+          {stock !== undefined && stock !== null && (
+              <div style={styles.stockRow}>
+                {inStock ? (
+                    <>
+                      <span style={styles.stockDot(true)} />
+                      <span style={styles.stockText(true)}>
+                  {stock <= 5 ? `Only ${stock} left` : `${stock} in stock`}
+                </span>
+                    </>
+                ) : (
+                    <>
+                      <span style={styles.stockDot(false)} />
+                      <span style={styles.stockText(false)}>Out of stock</span>
+                    </>
+                )}
+              </div>
+          )}
+
+          {/* Quantity selector + Add to cart */}
+          {inStock && (
+              <div style={styles.actions}>
+                <div style={styles.qtyControl}>
+                  <button onClick={decQty} disabled={qty <= 1} style={styles.qtyBtn(qty <= 1)}>−</button>
+                  <span style={styles.qtyVal}>{qty}</span>
+                  <button onClick={incQty} disabled={qty >= maxQty} style={styles.qtyBtn(qty >= maxQty)}>+</button>
+                </div>
+
+                <button
+                    onClick={handleAddToCart}
+                    disabled={adding || !inStock}
+                    style={{
+                      ...styles.addBtn,
+                      background: inCart ? "#2C6E49" : "#1A1A18",
+                      opacity: adding ? 0.7 : 1,
+                      cursor: adding ? "not-allowed" : "pointer",
+                    }}
+                >
+                  {adding ? (
+                      <span style={styles.spinner} />
+                  ) : inCart ? (
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        In Cart
+                      </>
+                  ) : (
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                        Add to Cart
+                      </>
+                  )}
+                </button>
+              </div>
+          )}
+
+          {!inStock && (
+              <div style={styles.outOfStockBtn}>Unavailable</div>
+          )}
+        </div>
       </div>
-    </div>
   );
 });
+
 ProductCard.displayName = "ProductCard";
+export { ProductCard };
 
 const FilterSidebar = memo(({ filters, onFilterChange, onClearFilters, categories, conditions }) => {
   const priceRanges = [
@@ -260,7 +400,7 @@ const Products = memo(() => {
     loadMoreProducts();
   }, [loadMoreProducts]);
 
-  const displayProducts = products;
+  const displayProducts = filteredProducts?.length ? filteredProducts : products;
 
   if (error) {
     return (
@@ -447,5 +587,249 @@ const Products = memo(() => {
   );
 });
 Products.displayName = "Products";
-
 export default Products;
+
+const styles = {
+  card: {
+    background: "#FFFFFF",
+    border: "1px solid #ECEAE4",
+    borderRadius: "16px",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    transition: "box-shadow 0.2s, transform 0.2s",
+    cursor: "default",
+    fontFamily: "'Instrument Sans', sans-serif",
+    position: "relative",
+  },
+  imageWrap: {
+    position: "relative",
+    width: "100%",
+    paddingBottom: "68%",
+    background: "#F7F6F3",
+    overflow: "hidden",
+  },
+  image: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    transition: "transform 0.35s",
+  },
+  imagePlaceholder: {
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  discountBadge: {
+    position: "absolute",
+    top: "12px",
+    left: "12px",
+    background: "#E8321C",
+    borderRadius: "8px",
+    padding: "4px 10px",
+    display: "flex",
+    alignItems: "center",
+    gap: "2px",
+    boxShadow: "0 2px 8px rgba(232,50,28,0.35)",
+  },
+  discountText: {
+    color: "#FFFFFF",
+    fontSize: "12px",
+    fontWeight: 700,
+    letterSpacing: "0.03em",
+  },
+  outOfStockOverlay: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(250,250,248,0.75)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backdropFilter: "blur(2px)",
+  },
+  outOfStockText: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#6B6B65",
+    letterSpacing: "0.06em",
+  },
+  wishBtn: {
+    position: "absolute",
+    top: "12px",
+    right: "12px",
+    width: "34px",
+    height: "34px",
+    borderRadius: "50%",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.18s",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+  },
+  body: {
+    padding: "16px 18px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    flex: 1,
+  },
+  categoryChip: {
+    display: "inline-block",
+    fontSize: "10px",
+    fontWeight: 600,
+    letterSpacing: "0.06em",
+    color: "#6B6B65",
+    background: "#F0EDE8",
+    borderRadius: "6px",
+    padding: "3px 9px",
+    alignSelf: "flex-start",
+    textTransform: "uppercase",
+  },
+  name: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: "16px",
+    fontWeight: 400,
+    color: "#1A1A18",
+    margin: 0,
+    lineHeight: 1.3,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  description: {
+    fontSize: "12px",
+    color: "#9B9B94",
+    margin: 0,
+    lineHeight: 1.5,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  priceRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginTop: "4px",
+  },
+  price: {
+    fontSize: "20px",
+    fontWeight: 700,
+    color: "#1A1A18",
+    fontFamily: "'DM Serif Display', serif",
+  },
+  originalPrice: {
+    fontSize: "13px",
+    color: "#B0ADA5",
+    textDecoration: "line-through",
+  },
+  saveBadge: {
+    fontSize: "10px",
+    fontWeight: 600,
+    color: "#2C6E49",
+    background: "#E8F5EE",
+    borderRadius: "6px",
+    padding: "2px 7px",
+    letterSpacing: "0.03em",
+  },
+  stockRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  stockDot: (ok) => ({
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: ok ? "#2C6E49" : "#C4BFB4",
+    flexShrink: 0,
+  }),
+  stockText: (ok) => ({
+    fontSize: "11px",
+    fontWeight: 500,
+    color: ok ? "#2C6E49" : "#9B9B94",
+  }),
+  actions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    marginTop: "6px",
+  },
+  qtyControl: {
+    display: "flex",
+    alignItems: "center",
+    border: "1px solid #ECEAE4",
+    borderRadius: "10px",
+    overflow: "hidden",
+  },
+  qtyBtn: (disabled) => ({
+    width: "32px",
+    height: "32px",
+    border: "none",
+    background: disabled ? "#F7F6F3" : "#FFFFFF",
+    color: disabled ? "#C4BFB4" : "#1A1A18",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontSize: "16px",
+    fontWeight: 400,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background 0.12s",
+  }),
+  qtyVal: {
+    minWidth: "28px",
+    textAlign: "center",
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#1A1A18",
+    borderLeft: "1px solid #ECEAE4",
+    borderRight: "1px solid #ECEAE4",
+    lineHeight: "32px",
+  },
+  addBtn: {
+    flex: 1,
+    height: "32px",
+    border: "none",
+    borderRadius: "10px",
+    color: "#FAFAF8",
+    fontSize: "12px",
+    fontWeight: 600,
+    letterSpacing: "0.03em",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    transition: "background 0.15s, transform 0.1s",
+    fontFamily: "'Instrument Sans', sans-serif",
+  },
+  outOfStockBtn: {
+    marginTop: "6px",
+    height: "34px",
+    background: "#F0EDE8",
+    borderRadius: "10px",
+    color: "#9B9B94",
+    fontSize: "12px",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    letterSpacing: "0.04em",
+  },
+  spinner: {
+    width: "12px",
+    height: "12px",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#FFFFFF",
+    borderRadius: "50%",
+    animation: "spin 0.6s linear infinite",
+    display: "inline-block",
+  },
+};
