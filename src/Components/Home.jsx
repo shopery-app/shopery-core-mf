@@ -1,7 +1,8 @@
 import React, { memo,  useEffect, useState } from "react";
+import { motion, AnimatePresence} from "framer-motion";
+import { Link } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
-import { motion, AnimatePresence} from "framer-motion";
 import "../CSS/Home.css";
 
 /* ─── Marquee items ─── */
@@ -80,13 +81,13 @@ const HeroBanner = memo(() => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <a href="/products" className="hero-btn-p">
+              <Link to="/products" className="hero-btn-p">
                 <i className="fa-solid fa-basket-shopping" /> Shop Now
-              </a>
+              </Link>
 
-              <a href="/shops" className="hero-btn-s">
+              <Link to="/shops" className="hero-btn-s">
                 Explore Shops <i className="fa-solid fa-arrow-right" />
-              </a>
+              </Link>
             </motion.div>
 
             <motion.div
