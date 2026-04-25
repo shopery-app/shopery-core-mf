@@ -35,6 +35,8 @@ import EditBlog from "../Components/Blogs/EditBlog";
 import AdminLogin from "../Components/Admin/AdminLogin";
 import AdminDashboard from "../Components/Admin/AdminDashboard";
 
+import PaymentSuccessPage from "../Components/Cart/PaymentSuccessPage";
+
 const AdminProtectedRoute = ({ children }) => {
     const adminAccessToken = localStorage.getItem("adminAccessToken");
     const adminUserStr = localStorage.getItem("adminUser");
@@ -120,6 +122,9 @@ const Routing = () => {
             {/* ── Legacy redirects ── */}
             <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
             <Route path="/merchant/shops/:shopId/dashboard" element={<Navigate to="/shop/dashboard" replace />} />
+
+            {/* ── Payment Success ── */}
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
 
             {/* ── 404 ── */}
             <Route path="*" element={<NotFound />} />

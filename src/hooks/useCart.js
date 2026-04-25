@@ -137,9 +137,17 @@ export const useCart = ({ autoFetch = true } = {}) => {
   const hideSuccessMessage = useCallback(() => dispatch(hideCartSuccess()), [dispatch]);
 
   const checkout = useCallback(async () => {
-    const action = await dispatch(checkoutAPI());
-    if (!checkoutAPI.rejected.match(action)) dispatch(fetchCart());
-    return action;
+      const action = await dispatch(checkoutAPI());
+
+      if (checkoutAPI.fulfilled.match(action)) {
+          const checkoutUrl = action.payload?.checkoutUrl;
+
+          if (checkoutUrl) {
+              window.location.href = checkoutUrl;
+          }
+      }
+
+      return action;
   }, [dispatch]);
 
   const loadMyOrders = useCallback(() => dispatch(fetchMyOrders()), [dispatch]);
