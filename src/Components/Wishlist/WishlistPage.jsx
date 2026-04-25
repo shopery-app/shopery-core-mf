@@ -9,24 +9,30 @@ const fmt = (n) => Number(n || 0).toFixed(2);
 
 const WishlistPage = memo(() => {
     const navigate = useNavigate();
-    const { items, loading, removeFromWishlist, clearWishlist, loadWishlist } = useWishlist();
-    const { addToCart, isItemInCart } = useCart();
+    const { items, loading, removeFromWishlist, clearWishlist } = useWishlist();
+    const { addToCart } = useCart({ autoFetch: false });
     const token = localStorage.getItem("accessToken");
 
     useEffect(() => {
-        if (!token) navigate("/signin");
-        else loadWishlist();
-    }, [token]);
+        if (!token) {
+            navigate("/signin");
+        }
+    }, [token, navigate]);
 
     const handleAddToCart = async (product) => {
-        await addToCart(product.id, 1, {
+        const action = await addToCart(product.id, 1, {
             id: product.id,
             productName: product.productName,
             imageUrl: product.imageUrl,
             currentPrice: product.currentPrice,
             originalPrice: product.discountDto?.originalPrice,
             discountPct: product.discountDto?.percentage,
+            stockQuantity: product.stockQuantity,
         });
+
+        if (!action?.error) {
+            removeFromWishlist(product.id);
+        }
     };
 
     return (
@@ -66,7 +72,6 @@ const WishlistPage = memo(() => {
                             const discountPct = product.discountDto?.percentage || 0;
                             const originalPrice = Number(product.discountDto?.originalPrice || 0);
                             const currentPrice = Number(product.currentPrice || 0);
-                            const inCart = isItemInCart(product.id);
 
                             return (
                                 <div key={product.id} style={S.card}>
@@ -108,19 +113,10 @@ const WishlistPage = memo(() => {
                                         </div>
 
                                         <div style={S.cardActions}>
-                                            <button
-                                                onClick={() => handleAddToCart(product)}
-                                                style={{
-                                                    ...S.addCartBtn,
-                                                    background: inCart ? "#2C6E49" : "#1A1A18",
-                                                }}
-                                            >
-                                                {inCart ? "✓ In Cart" : "Add to Cart"}
+                                            <button onClick={() => handleAddToCart(product)} style={S.addCartBtn}>
+                                                Add to Cart
                                             </button>
-                                            <button
-                                                onClick={() => removeFromWishlist(product.id)}
-                                                style={S.removeBtn}
-                                            >
+                                            <button onClick={() => removeFromWishlist(product.id)} style={S.removeBtn}>
                                                 Remove
                                             </button>
                                         </div>
@@ -282,6 +278,7 @@ const S = {
         letterSpacing: "0.03em",
         fontFamily: "'Instrument Sans', sans-serif",
         transition: "background 0.15s",
+        background: "#1A1A18"
     },
     removeBtn: {
         padding: "10px 14px",

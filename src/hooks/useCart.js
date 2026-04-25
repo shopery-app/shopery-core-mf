@@ -1,5 +1,6 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   addProductToCart,
   removeProductFromCartAPI,
@@ -26,7 +27,7 @@ import {
   selectCheckoutError,
 } from "../store/reducers/cartReducer";
 
-export const useCart = () => {
+export const useCart = ({ autoFetch = true } = {}) => {
   const dispatch = useDispatch();
 
   const cartItems = useSelector(selectCartItems);
@@ -41,13 +42,23 @@ export const useCart = () => {
   const ordersLoading = useSelector(selectOrdersLoading);
   const checkoutLoading = useSelector(selectCheckoutLoading);
   const checkoutError = useSelector(selectCheckoutError);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+      if (autoFetch) {
+          const token = localStorage.getItem("accessToken");
+          if (token) {
+              dispatch(fetchCart());
+          }
+      }
+  }, [dispatch, autoFetch]);
 
   const addToCart = useCallback(
       async (productId, quantity = 1, productData = null) => {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+            navigate("/signin"); return null;
+        }
         const existingItem = cartItems.find((i) => String(i.productId) === String(productId));
         const currentQty = existingItem?.quantity || 0;
         const stock = Number(
@@ -75,7 +86,7 @@ export const useCart = () => {
 
         return action;
       },
-      [dispatch, cartItems]
+      [dispatch, cartItems, navigate]
   );
 
   const removeFromCart = useCallback(

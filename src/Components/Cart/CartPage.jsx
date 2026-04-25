@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, {memo, useCallback, useEffect, useState} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useCart from "../../hooks/useCart";
 import Header from "../Header";
@@ -111,7 +111,7 @@ const OrderCard = memo(({ order }) => (
             {(order.items || []).map((it, i) => (
                 <div key={i} style={S.orderItem}>
                     <span style={S.orderItemName}>{it.productName}</span>
-                    <span style={S.orderItemDetail}>×{it.quantity} · ${Number(it.subtotal).toFixed(2)}</span>
+                    <span style={S.orderItemDetail}>×{it.quantity} · ${Number(it.unitPrice).toFixed(2)}</span>
                 </div>
             ))}
         </div>
@@ -129,9 +129,7 @@ const CartPage = memo(() => {
         cartItems,
         cartTotal,
         itemCount,
-        loading,
         checkoutLoading,
-        checkoutError,
         orders,
         ordersLoading,
         increaseProductQuantity,
@@ -142,22 +140,41 @@ const CartPage = memo(() => {
         loadMyOrders,
     } = useCart();
 
-    const [tab, setTab] = useState("cart"); // "cart" | "orders"
-    const [checkoutDone, setCheckoutDone] = useState(false);
     const token = localStorage.getItem("accessToken");
 
     useEffect(() => {
-        if (tab === "orders" && token) loadMyOrders();
-    }, [tab, token]);
+        if (!token) {
+            navigate("/signin");
+        }
+    }, [token, navigate]);
+
+    const [tab, setTab] = useState("cart"); // "cart" | "orders"
+    const [checkoutDone, setCheckoutDone] = useState(false);
+    const [visibleCheckoutError, setVisibleCheckoutError] = useState("");
 
     const handleCheckout = useCallback(async () => {
-        if (!token) { navigate("/signin"); return; }
-        const action = await checkout();
-        if (!action?.error) {
-            setCheckoutDone(true);
-            setTab("orders");
-            loadMyOrders();
+        if (!token) {
+            navigate("/signin");
+            return;
         }
+
+        setVisibleCheckoutError("");
+
+        const action = await checkout();
+
+        if (action?.error) {
+            setVisibleCheckoutError(
+                action?.payload?.message ||
+                action?.payload ||
+                action?.error?.message ||
+                "Checkout failed. Please try again."
+            );
+            return;
+        }
+
+        setCheckoutDone(true);
+        setTab("orders");
+        loadMyOrders();
     }, [checkout, token, navigate, loadMyOrders]);
 
     return (
@@ -233,24 +250,52 @@ const CartPage = memo(() => {
                             <aside style={S.summary}>
                                 <h3 style={S.summaryTitle}>Order Summary</h3>
 
-                                <div style={S.summaryRow}>
-                                    <span style={S.summaryLabel}>Subtotal ({itemCount} items)</span>
-                                    <span style={S.summaryValue}>${fmt(cartTotal)}</span>
-                                </div>
-                                <div style={S.summaryRow}>
-                                    <span style={S.summaryLabel}>Shipping</span>
-                                    <span style={{ ...S.summaryValue, color: "#2C6E49", fontWeight: 600 }}>Free</span>
+                                <div style={S.summarySection}>
+                                    {cartItems.map((item, idx) => {
+                                        const product = item.product || {};
+                                        const name = item.name || product.productName || "Product";
+                                        const quantity = Number(item.quantity || 0);
+                                        const price = Number(item.price || product.currentPrice || 0);
+                                        const subtotal = price * quantity;
+
+                                        return (
+                                            <div key={String(item.productId ?? product.id ?? idx)} style={S.summaryProductRow}>
+                                                <div>
+                                                    <span style={S.summaryProductName}>{name}</span>
+                                                    <span style={S.summaryProductMeta}>{quantity} × ${fmt(price)}</span>
+                                                </div>
+                                                <span style={S.summaryValue}>${fmt(subtotal)}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
                                 <div style={S.summaryDivider} />
 
                                 <div style={S.summaryRow}>
+                                    <span style={S.summaryLabel}>Shipping</span>
+                                    <span style={S.freeValue}>Free</span>
+                                </div>
+
+                                <div style={S.summaryDivider} />
+
+                                <div style={S.totalRow}>
                                     <span style={S.summaryTotalLabel}>Total</span>
                                     <span style={S.summaryTotalValue}>${fmt(cartTotal)}</span>
                                 </div>
 
-                                {checkoutError && (
-                                    <div style={S.errorBox}>{checkoutError}</div>
+                                {visibleCheckoutError && (
+                                    <div style={S.errorBox}>
+                                        <span>{visibleCheckoutError}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setVisibleCheckoutError("")}
+                                            style={S.errorCloseBtn}
+                                            aria-label="Close error"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                 )}
 
                                 <button
@@ -269,6 +314,7 @@ const CartPage = memo(() => {
                                     ← Continue Shopping
                                 </Link>
                             </aside>
+
                         </div>
                     )
                 )}
@@ -551,6 +597,20 @@ const S = {
         fontSize: "12px",
         color: "#991B1B",
         marginBottom: "14px",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "10px",
+    },
+    errorCloseBtn: {
+        background: "none",
+        border: "none",
+        color: "#991B1B",
+        fontSize: "18px",
+        lineHeight: 1,
+        cursor: "pointer",
+        padding: 0,
+        marginTop: "-2px",
     },
     checkoutBtn: {
         display: "block",
@@ -655,4 +715,45 @@ const S = {
     },
     orderDate: { fontSize: "11px", color: "#B0ADA5" },
     orderTotal: { fontSize: "14px", fontWeight: 700, color: "#1A1A18" },
+
+    summarySection: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        marginBottom: "16px",
+    },
+
+    summaryProductRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "16px",
+    },
+
+    summaryProductName: {
+        display: "block",
+        fontSize: "13px",
+        fontWeight: 600,
+        color: "#1A1A18",
+    },
+
+    summaryProductMeta: {
+        display: "block",
+        fontSize: "11px",
+        color: "#9B9B94",
+        marginTop: "3px",
+    },
+
+    freeValue: {
+        fontSize: "13px",
+        fontWeight: 700,
+        color: "#2C6E49",
+    },
+
+    totalRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: "4px",
+    }
 };
