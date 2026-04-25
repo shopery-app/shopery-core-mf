@@ -9,10 +9,9 @@ import {
     selectWishlistItems,
     selectWishlistLoading,
     selectWishlistError,
-    selectIsInWishlist,
 } from "../store/reducers/wishlistReducer";
 
-export const useWishlist = () => {
+export const useWishlist = ({ autoFetch = true } = {}) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const token = localStorage.getItem("accessToken");
@@ -31,8 +30,10 @@ export const useWishlist = () => {
     }, [dispatch, token]);
 
     useEffect(() => {
-        if (token) dispatch(fetchWishlist());
-    }, [dispatch, token]);
+        if (autoFetch && token) {
+            dispatch(fetchWishlist());
+        }
+    }, [dispatch, token, autoFetch]);
 
     const toggleWishlist = useCallback(
         async (productId) => {
