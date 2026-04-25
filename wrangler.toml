@@ -1,5 +1,0 @@
-name = shopery-core-mf
-compatibility_date = "2026-04-25"
-
-[site]
-bucket = "./dist"
