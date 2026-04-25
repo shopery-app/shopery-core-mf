@@ -1,542 +1,778 @@
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState, useRef } from "react";
 import Header from "./Header";
-import Hero from "./Pages/Hero";
 import Categories from "./Pages/Categories";
 import Footer from "./Footer";
-import "../CSS/Home.css";
-import { motion } from "framer-motion";
-
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useProducts } from "../hooks/useProducts";
 import { useCart } from "../hooks/useCart";
 
-const ProductShowCase = memo(() => {
-  const {
-    featuredProducts,
-    featuredLoading,
-    featuredError,
-    shouldShowNotFound,
-    loadFeaturedProducts,
-  } = useProducts();
-  const { addToCart, isItemInCart, getItemQuantity } = useCart();
+/* ─────────────────────────────────────────────
+   GLOBAL STYLES
+───────────────────────────────────────────── */
+const homeStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-  console.log("🏠 ProductShowCase render:", {
-    featuredProducts: featuredProducts?.length,
-    featuredLoading,
-    featuredError,
-    shouldShowNotFound,
+  :root {
+    --c-bg:         #F4F1EB;
+    --c-bg2:        #EDEAE2;
+    --c-card:       #FDFCF9;
+    --c-border:     rgba(0,0,0,0.08);
+    --c-text:       #1C1B18;
+    --c-text2:      #5C5A52;
+    --c-text3:      #9B9890;
+    --c-green:      #2D8653;
+    --c-green2:     #22C55E;
+    --c-green-pale: #D1FAE5;
+    --c-lime:       #A3E635;
+    --c-amber:      #F59E0B;
+    --c-coral:      #F05A28;
+    --c-red:        #EF4444;
+    --c-ink:        #1C1B18;
+    --c-white:      #FDFCF9;
+    --ff-display:   'Fraunces', serif;
+    --ff-body:      'Plus Jakarta Sans', sans-serif;
+    --r-xl: 20px; --r-lg: 14px; --r-md: 10px;
+    --ease-out:   cubic-bezier(0.16,1,0.3,1);
+    --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background: var(--c-bg); font-family: var(--ff-body); }
+  .home-page { overflow-x: hidden; }
+
+  /* ──────── HERO ──────── */
+  .hero-banner {
+    position: relative; min-height: 92vh;
+    display: flex; align-items: center;
+    overflow: hidden; background: var(--c-ink);
+    padding-top: 68px;
+  }
+  .hero-bg-mesh {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 70% at 70% 30%, rgba(45,134,83,0.38) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 10% 80%, rgba(240,90,40,0.22) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 60% at 90% 90%, rgba(163,230,53,0.16) 0%, transparent 50%);
+  }
+  .hero-grain {
+    position: absolute; inset: 0; opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px;
+  }
+  .hero-inner {
+    max-width: 1280px; margin: 0 auto; padding: 80px 32px;
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 60px; align-items: center;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(163,230,53,0.13);
+    border: 1px solid rgba(163,230,53,0.28);
+    color: var(--c-lime);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 6px 14px; border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-family: var(--ff-display);
+    font-size: clamp(44px, 6.5vw, 88px);
+    font-weight: 900; line-height: 0.95;
+    color: var(--c-white); margin: 0 0 24px;
+    letter-spacing: -0.03em;
+  }
+  .hero-title .grad {
+    font-style: italic; font-weight: 300;
+    background: linear-gradient(135deg, var(--c-lime) 0%, var(--c-green2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: 16px; color: rgba(253,252,249,0.6);
+    margin: 0 0 36px; line-height: 1.7; max-width: 420px;
+  }
+  .hero-cta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hero-btn-p {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 28px; background: var(--c-lime); color: var(--c-ink);
+    border: none; border-radius: var(--r-lg);
+    font-size: 14px; font-weight: 800; font-family: var(--ff-body);
+    cursor: pointer; text-decoration: none;
+    box-shadow: 0 0 40px rgba(163,230,53,0.4);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+  }
+  .hero-btn-p:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 0 60px rgba(163,230,53,0.55); }
+  .hero-btn-s {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 22px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+    color: rgba(253,252,249,0.82); border-radius: var(--r-lg);
+    font-size: 14px; font-weight: 600; font-family: var(--ff-body);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.18s, transform 0.18s;
+  }
+  .hero-btn-s:hover { background: rgba(255,255,255,0.14); transform: translateY(-2px); }
+
+  .hero-stats { display: flex; gap: 28px; margin-top: 50px; flex-wrap: wrap; }
+  .hero-stat-num {
+    font-family: var(--ff-display);
+    font-size: 32px; font-weight: 900; color: var(--c-white); line-height: 1;
+  }
+  .hero-stat-label {
+    font-size: 11px; color: rgba(253,252,249,0.42); margin-top: 5px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+  }
+  .hero-div { width: 1px; background: rgba(255,255,255,0.1); align-self: stretch; }
+
+  /* Floating card right */
+  .hero-visual { display: flex; justify-content: center; align-items: center; }
+  .hero-card-stack { position: relative; width: 280px; height: 360px; }
+  .hcs-back {
+    position: absolute; inset: 0; border-radius: 24px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    transform: rotate(7deg) translate(20px,-10px);
+  }
+  .hcs-mid {
+    position: absolute; inset: 0; border-radius: 24px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    transform: rotate(3.5deg) translate(10px,-5px);
+  }
+  .hcs-front {
+    position: absolute; inset: 0; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(45,134,83,0.85), rgba(34,197,94,0.65));
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(20px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; padding: 24px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45), 0 0 40px rgba(45,134,83,0.25);
+  }
+  .hcs-emoji { font-size: 60px; line-height: 1; }
+  .hcs-name { font-family: var(--ff-display); font-size: 20px; font-weight: 700; color: #fff; text-align: center; }
+  .hcs-price { font-size: 30px; font-weight: 900; color: var(--c-lime); font-family: var(--ff-display); }
+  .hcs-tag {
+    background: rgba(163,230,53,0.18); color: var(--c-lime);
+    font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(163,230,53,0.28);
+  }
+  .hero-badge {
+    position: absolute; font-size: 12px; font-weight: 800;
+    padding: 8px 14px; border-radius: 12px; white-space: nowrap; color: #fff;
+  }
+  .hb1 { top: 8%; right: -8%; background: var(--c-coral); box-shadow: 0 0 24px rgba(240,90,40,0.4); }
+  .hb2 { bottom: 12%; left: -14%; background: var(--c-amber); color: var(--c-ink); box-shadow: 0 0 20px rgba(245,158,11,0.35); }
+
+  /* ──────── MARQUEE ──────── */
+  .marquee-wrap {
+    background: var(--c-green); overflow: hidden;
+    padding: 13px 0; position: relative; z-index: 1;
+  }
+  .marquee-track {
+    display: flex; width: max-content;
+    animation: marquee 24s linear infinite;
+  }
+  .marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+  .marquee-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 30px;
+    font-size: 11.5px; font-weight: 800; color: #fff;
+    text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;
+  }
+  .m-sep { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.35); flex-shrink: 0; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ──────── SECTIONS ──────── */
+  .sc-section { position: relative; z-index: 1; padding: 76px 0 84px; }
+  .sc-section.alt { background: var(--c-bg2); }
+  .sc-container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+  .sc-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 44px; gap: 20px; }
+  .sc-eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--c-green-pale); color: var(--c-green);
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 5px 13px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .sc-title {
+    font-family: var(--ff-display);
+    font-size: clamp(30px, 4vw, 46px);
+    font-weight: 900; line-height: 1.05;
+    color: var(--c-text); margin: 0 0 8px; letter-spacing: -0.025em;
+  }
+  .sc-title em { font-style: italic; font-weight: 300; color: var(--c-green); }
+  .sc-sub { font-size: 14px; color: var(--c-text3); margin: 0; }
+  .sc-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 22px; background: var(--c-ink); color: var(--c-white);
+    border: none; border-radius: var(--r-lg);
+    font-size: 13px; font-weight: 700; font-family: var(--ff-body);
+    cursor: pointer; text-decoration: none; flex-shrink: 0; align-self: flex-end;
+    transition: transform 0.22s var(--ease-spring), box-shadow 0.22s;
+  }
+  .sc-cta:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(28,27,24,0.2); }
+  .sc-cta .arr { transition: transform 0.18s; display: inline-block; }
+  .sc-cta:hover .arr { transform: translateX(4px); }
+
+  /* ──────── FILTER TABS ──────── */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 36px; flex-wrap: wrap; }
+  .ftab {
+    padding: 8px 18px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; font-family: var(--ff-body);
+    cursor: pointer; border: 1.5px solid var(--c-border);
+    background: var(--c-card); color: var(--c-text2);
+    transition: all 0.18s var(--ease-out);
+  }
+  .ftab:hover { border-color: var(--c-green); color: var(--c-green); transform: translateY(-1px); }
+  .ftab.on {
+    background: var(--c-green); border-color: var(--c-green); color: #fff;
+    box-shadow: 0 4px 14px rgba(45,134,83,0.35); transform: translateY(-2px);
+  }
+
+  /* ──────── PRODUCT GRID ──────── */
+  .pgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 22px; }
+
+  /* ──────── PRODUCT CARD ──────── */
+  .pcard {
+    background: var(--c-card); border-radius: var(--r-xl);
+    border: 1px solid var(--c-border); overflow: hidden;
+    cursor: pointer; position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: box-shadow 0.3s, transform 0.3s var(--ease-out), border-color 0.3s;
+  }
+  .pcard:hover {
+    transform: translateY(-7px) scale(1.012);
+    box-shadow: 0 22px 60px rgba(0,0,0,0.14), 0 6px 18px rgba(0,0,0,0.07);
+    border-color: rgba(45,134,83,0.2);
+  }
+  /* Accent top stripe */
+  .pcard::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--c-green), var(--c-lime));
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.35s var(--ease-out); z-index: 3;
+  }
+  .pcard:hover::before { transform: scaleX(1); }
+
+  .pcard-img-wrap {
+    position: relative; height: 210px;
+    background: linear-gradient(135deg, #EEF0EA, #E5E8DF); overflow: hidden;
+  }
+  .pcard-img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.5s var(--ease-out);
+  }
+  .pcard:hover .pcard-img { transform: scale(1.09); }
+  .pcard-img-ph {
+    width: 100%; height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    color: #B5B8B0; font-size: 34px;
+    background: linear-gradient(135deg, #EEF0EA, #E5E8DF);
+  }
+  .pcard-img-ph span { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #AAADA5; }
+
+  .badge-disc {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--c-coral); color: #fff;
+    font-size: 10.5px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px;
+    box-shadow: 0 2px 10px rgba(240,90,40,0.4); z-index: 3;
+  }
+  .badge-cond {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--c-green); color: #fff;
+    font-size: 9px; font-weight: 800;
+    padding: 3px 9px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: 0.07em; z-index: 3;
+  }
+  .pcard-oos-overlay {
+    position: absolute; inset: 0; background: rgba(28,27,24,0.62);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; z-index: 4;
+  }
+  .pcard-oos-label {
+    background: var(--c-red); color: #fff;
+    font-size: 10px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 7px 16px; border-radius: 8px;
+  }
+  /* Hover quick overlay */
+  .pcard-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(28,27,24,0.9) 0%, transparent 100%);
+    padding: 18px 14px 14px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.25s, transform 0.25s var(--ease-out); z-index: 4;
+  }
+  .pcard:hover .pcard-overlay { opacity: 1; transform: translateY(0); }
+  .pcard-overlay-btn {
+    width: 100%; padding: 9px; border: none; border-radius: 10px;
+    background: rgba(253,252,249,0.96); color: var(--c-ink);
+    font-size: 12px; font-weight: 700; font-family: var(--ff-body); cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pcard-overlay-btn:hover { background: #fff; }
+
+  /* Wishlist btn on hover */
+  .pcard-wish {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(253,252,249,0.9); backdrop-filter: blur(8px);
+    border: none; cursor: pointer; color: var(--c-text2); font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0.65);
+    transition: opacity 0.2s, transform 0.2s var(--ease-spring); z-index: 5;
+  }
+  .pcard:hover .pcard-wish { opacity: 1; transform: scale(1); }
+  .pcard-wish:hover { color: var(--c-red); transform: scale(1.18) !important; }
+  .pcard-wish.shift { right: 50px; }
+
+  /* Body */
+  .pcard-body { padding: 16px; }
+  .pcard-cat {
+    font-size: 10px; font-weight: 800; color: var(--c-green);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    display: flex; align-items: center; gap: 5px; margin-bottom: 6px;
+  }
+  .cat-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c-green2); flex-shrink: 0; }
+  .pcard-name {
+    font-size: 14px; font-weight: 700; color: var(--c-text);
+    margin: 0 0 5px; line-height: 1.4; font-family: var(--ff-body);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pcard-desc {
+    font-size: 11.5px; color: var(--c-text3);
+    margin: 0 0 12px; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pcard-price-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .pcard-prices { display: flex; align-items: baseline; gap: 7px; }
+  .p-now { font-size: 21px; font-weight: 900; color: var(--c-green); font-family: var(--ff-display); line-height: 1; }
+  .p-was { font-size: 12px; color: var(--c-text3); text-decoration: line-through; }
+  .pcard-stk { font-size: 10.5px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+  .stk-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .stk-in .stk-dot { background: var(--c-green2); box-shadow: 0 0 5px var(--c-green2); }
+  .stk-out .stk-dot { background: var(--c-red); }
+  .stk-in { color: var(--c-green); }
+  .stk-out { color: var(--c-red); }
+
+  /* Add to cart button */
+  .atc {
+    width: 100%; padding: 11px 14px;
+    border-radius: var(--r-lg); border: none; cursor: pointer;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.02em; font-family: var(--ff-body);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s, background 0.18s;
+    position: relative; overflow: hidden;
+  }
+  .atc::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background 0.15s; }
+  .atc:not(.atc-oos):hover::after { background: rgba(255,255,255,0.1); }
+  .atc-idle {
+    background: linear-gradient(135deg, var(--c-green), #22C55E);
+    color: #fff; box-shadow: 0 4px 14px rgba(45,134,83,0.3);
+  }
+  .atc-idle:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 8px 26px rgba(45,134,83,0.45); }
+  .atc-idle:active { transform: scale(0.97); }
+  .atc-added { background: linear-gradient(135deg, #15803D, #16A34A); color: #fff; box-shadow: 0 4px 12px rgba(21,128,61,0.3); }
+  .atc-added:hover { transform: translateY(-1px); }
+  .atc-oos { background: #EDEAE2; color: var(--c-text3); cursor: not-allowed; }
+  .atc-ripple {
+    position: absolute; width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(255,255,255,0.3); transform: scale(0); pointer-events: none;
+    animation: ripple-out 0.55s ease-out forwards;
+  }
+  @keyframes ripple-out { to { transform: scale(4.5); opacity: 0; } }
+
+  /* ──────── SKELETONS ──────── */
+  .skel-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 22px; }
+  .skel-card { background: var(--c-card); border-radius: var(--r-xl); border: 1px solid var(--c-border); overflow: hidden; }
+  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .sh {
+    background: linear-gradient(90deg, #EDEAE2 25%, #E4E1D8 50%, #EDEAE2 75%);
+    background-size: 200% 100%; animation: sh 1.5s infinite;
+  }
+  .sh-img { height: 210px; }
+  .sh-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .sh-line { height: 11px; border-radius: 6px; }
+
+  /* ──────── SCROLL TOP ──────── */
+  .scr-top {
+    position: fixed; bottom: 28px; right: 28px;
+    width: 46px; height: 46px; background: var(--c-ink);
+    color: var(--c-white); border: none; border-radius: 14px;
+    cursor: pointer; z-index: 500;
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+    box-shadow: 0 6px 22px rgba(28,27,24,0.25);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+  }
+  .scr-top:hover { transform: translateY(-4px) rotate(-5deg); box-shadow: 0 14px 36px rgba(28,27,24,0.35); }
+
+  /* ──────── RESPONSIVE ──────── */
+  @media (max-width: 1100px) { .pgrid, .skel-grid { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 900px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-visual { display: none; }
+    .hero-banner { min-height: auto; }
+  }
+  @media (max-width: 768px) {
+    .pgrid, .skel-grid { grid-template-columns: repeat(2,1fr); gap: 14px; }
+    .sc-head { flex-direction: column; align-items: flex-start; }
+    .sc-section { padding: 52px 0 60px; }
+    .sc-container { padding: 0 16px; }
+    .pcard-img-wrap { height: 175px; }
+    .hero-inner { padding: 48px 20px 60px; }
+    .hero-title { font-size: clamp(38px, 10vw, 56px); }
+    .hero-stats { gap: 18px; }
+  }
+  @media (max-width: 480px) {
+    .pgrid, .skel-grid { grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .pcard-img-wrap { height: 150px; }
+    .p-now { font-size: 18px; }
+    .pcard-name { font-size: 13px; }
+    .atc { font-size: 12px; padding: 10px 10px; gap: 6px; }
+    .filter-bar { gap: 6px; }
+    .ftab { padding: 6px 13px; font-size: 11.5px; }
+  }
+  @media (max-width: 360px) { .pgrid { grid-template-columns: 1fr; } }
+`;
+
+/* ─── Marquee items ─── */
+const MARQUEE = [
+  "🌿 Fresh Daily Deals",
+  "⚡ Up To 70% Off",
+  "🚚 Free Shipping Over $50",
+  "🌱 100% Organic",
+  "✨ New Arrivals Weekly",
+  "🎁 Refer & Save",
+];
+
+/* ─── Hero ─── */
+const HeroBanner = memo(() => {
+  const floatAnim = {
+    animate: {
+      y: [0, -14, 0],
+      rotate: [0, 1.5, -1.5, 0],
+      transition: { duration: 5.5, repeat: Infinity, ease: "easeInOut" },
+    },
+  };
+  const badgeAnim = (delay) => ({
+    animate: {
+      y: [0, -8, 0],
+      transition: { duration: 3.5 + delay, repeat: Infinity, ease: "easeInOut", delay },
+    },
   });
 
-  useEffect(() => {
-    if (featuredProducts.length === 0 && !featuredLoading) {
-      loadFeaturedProducts();
-    }
-  }, [featuredProducts, featuredLoading, loadFeaturedProducts]);
-
-  const handleAddToCart = useCallback(
-    (product, quantity = 1) => {
-      console.log("adding to cart from showcase: ", product.productName);
-
-      addToCart(product.id, quantity, product);
-    },
-    [addToCart]
-  );
-
-  if (featuredLoading) {
-    return (
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-              Featured Products
-            </h2>
-            <div className="w-24 h-1 bg-emerald-600 mx-auto rounded-full"></div>
-          </div>
-
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-emerald-600"></div>
-            <span className="ml-3 text-gray-600 text-lg">
-              Loading featured products...
-            </span>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (featuredError) {
-    return (
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-              Featured Products
-            </h2>
-            <div className="w-24 h-1 bg-emerald-600 mx-auto rounded-full"></div>
-          </div>
-
-          <div className="text-center py-20">
-            <i className="fa-solid fa-exclamation-triangle text-5xl text-red-400 mb-4"></i>
-            <p className="text-gray-600 text-lg mb-4">
-              Failed to load featured products
-            </p>
-            <button
-              onClick={loadFeaturedProducts}
-              className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (
-    shouldShowNotFound ||
-    !featuredProducts ||
-    featuredProducts.length === 0
-  ) {
-    console.log("📭 Showing not found state");
-    return (
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-              Featured Products
-            </h2>
-            <div className="w-24 h-1 bg-emerald-600 mx-auto rounded-full"></div>
-          </div>
-          <div className="text-center py-20">
-            <i className="fa-solid fa-box text-5xl text-gray-300 mb-4"></i>
-            <p className="text-gray-600 text-lg mb-4">
-              No featured products available at the moment
-            </p>
-            <button
-              onClick={() => (window.location.href = "/products")}
-              className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition"
-            >
-              Browse All Products
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  console.log("✅ Showing featured products:", featuredProducts?.length);
-
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-            Featured Products
-          </h2>
-          <p className="text-gray-600 text-lg mb-6">
-            Discover our top discounted products with amazing deals
-          </p>
-          <div className="w-24 h-1 bg-emerald-600 mx-auto rounded-full"></div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 cursor-pointer">
-          {featuredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={handleAddToCart}
-              isInCart={isItemInCart(product.id)}
-              cartQuantity={getItemQuantity(product.id)}
-            />
-          ))}
-        </div>
-
-        {featuredProducts.length > 0 && (
-          <div className="text-center mt-12">
-            <button
-              onClick={() => (window.location.href = "/products")}
-              className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
-            >
-              View All Products
-              <i className="fa-solid fa-arrow-right ml-2"></i>
-            </button>
+      <div className="hero-banner">
+        <div className="hero-bg-mesh" />
+        <div className="hero-grain" />
+        <div className="hero-inner">
+          <div>
+            <motion.div className="hero-eyebrow"
+                        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.1 }}>
+              <i className="fa-solid fa-bolt" /> New Season Picks
+            </motion.div>
+            <motion.h1 className="hero-title"
+                       initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
+                       transition={{ duration: 0.75, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}>
+              Shop <span className="grad">fresh</span><br />& save big
+            </motion.h1>
+            <motion.p className="hero-sub"
+                      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.65, delay: 0.36 }}>
+              Thousands of organic products, unbeatable deals, delivered fast. Your freshest grocery experience starts here.
+            </motion.p>
+            <motion.div className="hero-cta-row"
+                        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.5 }}>
+              <a href="/products" className="hero-btn-p">
+                <i className="fa-solid fa-basket-shopping" /> Shop Now
+              </a>
+              <a href="/shops" className="hero-btn-s">
+                Explore Shops <i className="fa-solid fa-arrow-right" />
+              </a>
+            </motion.div>
+            <motion.div className="hero-stats"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        transition={{ duration: 0.8, delay: 0.72 }}>
+              {[["12K+", "Products"], ["840+", "Shops"], ["99%", "Satisfaction"]].map(([n, l], i) => (
+                  <React.Fragment key={l}>
+                    {i > 0 && <div className="hero-div" />}
+                    <div>
+                      <div className="hero-stat-num">{n}</div>
+                      <div className="hero-stat-label">{l}</div>
+                    </div>
+                  </React.Fragment>
+              ))}
+            </motion.div>
           </div>
-        )}
+
+          <div className="hero-visual">
+            <motion.div className="hero-card-stack" {...floatAnim}>
+              <div className="hcs-back" /><div className="hcs-mid" />
+              <div className="hcs-front">
+                <div className="hcs-emoji">🥑</div>
+                <div className="hcs-name">Organic Avocado<br />Bundle</div>
+                <div className="hcs-price">$4.99</div>
+                <div className="hcs-tag">Best Seller</div>
+              </div>
+            </motion.div>
+            <motion.div className="hero-badge hb1" {...badgeAnim(0).animate ? { animate: badgeAnim(0).animate } : {}}>🔥 70% Off Today</motion.div>
+            <motion.div className="hero-badge hb2" {...badgeAnim(0.8).animate ? { animate: badgeAnim(0.8).animate } : {}}>⭐ 4.9 Rating</motion.div>
+          </div>
+        </div>
       </div>
-    </section>
   );
 });
-ProductShowCase.displayName = "ProductShowCase";
+HeroBanner.displayName = "HeroBanner";
 
-const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity }) => {
-  const [imageError, setImageError] = useState(false);
-
-  const handleImageError = useCallback(() => {
-    setImageError(true);
-  }, []);
-
-  const handleAddClick = useCallback(
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (product.stockQuantity !== undefined && product.stockQuantity <= 0) {
-        return;
-      }
-
-      onAddToCart(product);
-    },
-    [onAddToCart, product]
+/* ─── Marquee ─── */
+const MarqueeStrip = memo(() => {
+  const doubled = [...MARQUEE, ...MARQUEE];
+  return (
+      <div className="marquee-wrap">
+        <div className="marquee-track">
+          {doubled.map((t, i) => (
+              <div key={i} className="marquee-item">{t}<div className="m-sep" /></div>
+          ))}
+        </div>
+      </div>
   );
+});
+MarqueeStrip.displayName = "MarqueeStrip";
 
-  const discountPercentage =
-    product.originalPrice && product.currentPrice
-      ? Math.round(
-          ((product.originalPrice - product.currentPrice) /
-            product.originalPrice) *
-            100
-        )
-      : 0;
+/* ─── Product Card ─── */
+const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity, index }) => {
+  const [imgErr, setImgErr] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [ripple, setRipple] = useState(null);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
 
-  const isOutOfStock =
-    product.stockQuantity !== undefined && product.stockQuantity <= 0;
+  const disc = product.originalPrice && product.currentPrice
+      ? Math.round(((product.originalPrice - product.currentPrice) / product.originalPrice) * 100) : 0;
+  const oos = product.stockQuantity !== undefined && product.stockQuantity <= 0;
+
+  const handleAdd = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (oos || busy) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple({ x: e.clientX - rect.left - 40, y: e.clientY - rect.top - 40, id: Date.now() });
+    setBusy(true);
+    onAddToCart(product);
+    setTimeout(() => setBusy(false), 850);
+  }, [oos, busy, onAddToCart, product]);
+
+  const btnCls = oos ? "atc atc-oos" : isInCart ? "atc atc-added" : "atc atc-idle";
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group border border-gray-100 transform hover:-translate-y-1">
-      <div className="relative overflow-hidden bg-gray-100 h-64">
-        {!imageError && product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.productName}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            onError={handleImageError}
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <i className="fa-solid fa-image text-4xl text-gray-300"></i>
-          </div>
-        )}
-
-        {discountPercentage > 0 && (
-          <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-            -{discountPercentage}%
-          </div>
-        )}
-
-        {product.condition && (
-          <div className="absolute top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase">
-            {product.condition}
-          </div>
-        )}
-
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm">
-              OUT OF STOCK
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="p-5">
-        <h3 className="font-bold text-lg text-gray-800 mb-2 line-clamp-2 group-hover:text-emerald-600 transition-colors">
-          {product.productName}
-        </h3>
-
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-          {product.description}
-        </p>
-
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-emerald-600">
-              ${product.currentPrice?.toFixed(2)}
-            </span>
-            {product.originalPrice &&
-              product.originalPrice > product.currentPrice && (
-                <span className="text-lg text-gray-400 line-through">
-                  ${product.originalPrice.toFixed(2)}
-                </span>
-              )}
-          </div>
-
-          {product.category && (
-            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-              {product.category}
-            </span>
+      <motion.div
+          ref={ref}
+          className="pcard"
+          initial={{ opacity: 0, y: 36, scale: 0.95 }}
+          animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ duration: 0.52, delay: (index % 4) * 0.09, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="pcard-img-wrap">
+          {!imgErr && product.imageUrl
+              ? <img src={product.imageUrl} alt={product.productName} className="pcard-img" onError={() => setImgErr(true)} loading="lazy" />
+              : <div className="pcard-img-ph"><i className="fa-solid fa-seedling" /><span>Shopery</span></div>}
+          {disc > 0 && <div className="badge-disc">-{disc}%</div>}
+          {product.condition && !disc && <div className="badge-cond">{product.condition}</div>}
+          {oos && <div className="pcard-oos-overlay"><span className="pcard-oos-label">Out of Stock</span></div>}
+          {/* Wishlist */}
+          <button className={`pcard-wish ${product.condition ? "shift" : ""}`} onClick={e => e.stopPropagation()}>
+            <i className="fa-regular fa-heart" />
+          </button>
+          {/* Quick view */}
+          {!oos && (
+              <div className="pcard-overlay">
+                <button className="pcard-overlay-btn" onClick={e => { e.stopPropagation(); window.location.href = `/products/${product.id}`; }}>
+                  Quick View →
+                </button>
+              </div>
           )}
         </div>
 
-        {product.stockQuantity !== undefined && (
-          <div className="text-xs mb-3">
-            {product.stockQuantity > 0 ? (
-              <span className="text-green-600 font-medium">
-                <i className="fa-solid fa-check-circle mr-1"></i>
-                {product.stockQuantity} in stock
-              </span>
-            ) : (
-              <span className="text-red-600 font-medium">
-                <i className="fa-solid fa-times-circle mr-1"></i>
-                Out of stock
-              </span>
+        <div className="pcard-body">
+          {product.category && <div className="pcard-cat"><div className="cat-dot" />{product.category}</div>}
+          <h3 className="pcard-name">{product.productName}</h3>
+          {product.description && <p className="pcard-desc">{product.description}</p>}
+          <div className="pcard-price-row">
+            <div className="pcard-prices">
+              <span className="p-now">${product.currentPrice?.toFixed(2)}</span>
+              {product.originalPrice > product.currentPrice && <span className="p-was">${product.originalPrice?.toFixed(2)}</span>}
+            </div>
+            {product.stockQuantity !== undefined && (
+                <div className={`pcard-stk ${product.stockQuantity > 0 ? "stk-in" : "stk-out"}`}>
+                  <div className="stk-dot" />
+                  {product.stockQuantity > 0 ? `${product.stockQuantity} left` : "None"}
+                </div>
             )}
           </div>
-        )}
-
-        <button
-          onClick={handleAddClick}
-          disabled={isOutOfStock}
-          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-            isOutOfStock
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-              : isInCart
-              ? "bg-emerald-600 text-white hover:bg-emerald-700 transform hover:scale-105 shadow-lg"
-              : "bg-emerald-600 text-white hover:bg-emerald-700 transform hover:scale-105 shadow-lg"
-          }`}
-        >
-          {isOutOfStock ? (
-            <>
-              <i className="fa-solid fa-times-circle"></i>
-              Out of Stock
-            </>
-          ) : isInCart ? (
-            <>
-              <i className="fa-solid fa-check"></i>
-              In Cart ({cartQuantity})
-            </>
-          ) : (
-            <>
-              <i className="fa-solid fa-cart-plus"></i>
-              Add to Cart
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+          <button className={btnCls} onClick={handleAdd} disabled={oos}>
+            {oos ? <><i className="fa-solid fa-ban" /> Out of Stock</>
+                : isInCart ? <><i className="fa-solid fa-check" /> In Cart ({cartQuantity})</>
+                    : busy ? <><i className="fa-solid fa-circle-notch fa-spin" /> Adding…</>
+                        : <><i className="fa-solid fa-cart-plus" /> Add to Cart</>}
+            {ripple && (
+                <span key={ripple.id} className="atc-ripple" style={{ left: ripple.x, top: ripple.y }}
+                      onAnimationEnd={() => setRipple(null)} />
+            )}
+          </button>
+        </div>
+      </motion.div>
   );
 });
 ProductCard.displayName = "ProductCard";
 
-const Home = () => {
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
+/* ─── Showcase ─── */
+const TABS = ["All", "Fruits", "Vegetables", "Dairy", "Bakery", "Organic"];
 
-  
+const ProductShowCase = memo(() => {
+  const { featuredProducts, featuredLoading, featuredError, shouldShowNotFound, loadFeaturedProducts } = useProducts();
+  const { addToCart, isItemInCart, getItemQuantity } = useCart();
+  const [tab, setTab] = useState("All");
+  const headRef = useRef(null);
+  const headInView = useInView(headRef, { once: true });
+
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollBtn(true);
-      } else {
-        setShowScrollBtn(false);
-      }
-    };
+    if (!featuredProducts.length && !featuredLoading) loadFeaturedProducts();
+  }, [featuredProducts, featuredLoading, loadFeaturedProducts]);
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const handleAdd = useCallback((p, qty = 1) => addToCart(p.id, qty, p), [addToCart]);
 
-  
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const shown = tab === "All" ? featuredProducts
+      : featuredProducts.filter(p => p.category?.toLowerCase() === tab.toLowerCase());
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.3,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: 50,
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-      },
-    },
-  };
-
-  const blogPosts = [
-    {
-      id: 1,
-      title: "5 Ways to Keep Your Dog Healthy",
-      description: "Expert tips for a happy, healthy dog.",
-      image:
-        "https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=300&fit=crop",
-      author: {
-        name: "Dr. Smith",
-        avatar:
-          "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=50&h=50&fit=crop&crop=face",
-      },
-      date: "March 15, 2024",
-    },
-    {
-      id: 2,
-      title: "5 Ways to Keep Your Dog Healthy",
-      description: "Essential advice from veterinarians.",
-      image:
-        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&h=300&fit=crop",
-      author: {
-        name: "Dr. Smith",
-        avatar:
-          "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=50&h=50&fit=crop&crop=face",
-      },
-      date: "March 12, 2024",
-    },
-    {
-      id: 3,
-      title: "5 Ways to Keep Your Dog Healthy",
-      description: "Practical suggestions for dog care.",
-      image:
-        "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=300&fit=crop",
-      author: {
-        name: "Dr. Smith",
-        avatar:
-          "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=50&h=50&fit=crop&crop=face",
-      },
-      date: "March 10, 2024",
-    },
-  ];
-
-  return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants}>
-        <Header />
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <Hero />
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <Categories />
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <ProductShowCase />
-      </motion.div>
-
-      <motion.section className="our-blog py-16" variants={itemVariants}>
-        <div className="blog-wrapper bg-300 min-h-[70vh] py-16">
-          <motion.div
-            className="title flex justify-center items-center mb-12"
-            variants={itemVariants}
-          >
-            <h3 className="font-bold text-3xl md:text-4xl text-gray-800 text-center">
-              Visit Our Blog
-            </h3>
-          </motion.div>
-
-          <motion.div
-            className="blogs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[90%] lg:max-w-[85%] m-auto px-4"
-            variants={containerVariants}
-          >
-            {blogPosts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                className="blog-card bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer transform hover:scale-105"
-                variants={{
-                  hidden: { opacity: 0, y: 50 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      duration: 0.6,
-                      delay: index * 0.2,
-                      ease: "easeOut",
-                    },
-                  },
-                }}
-              >
-                <div className="blog-img h-48 md:h-52 overflow-hidden">
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-
-                <div className="blog-content p-6">
-                  <h4 className="font-bold text-lg md:text-xl text-gray-800 mb-3 line-clamp-2">
-                    {post.title}
-                  </h4>
-                  <p className="text-gray-600 text-sm md:text-base mb-4 line-clamp-2">
-                    {post.description}
-                  </p>
-
-                  <div className="blog-author flex items-center gap-3">
-                    <div className="author-img w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden">
-                      <img
-                        src={post.author.avatar}
-                        alt={post.author.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="author-info">
-                      <p className="font-medium text-gray-800 text-sm md:text-base">
-                        {post.author.name}
-                      </p>
-                      <p className="text-xs md:text-sm text-gray-500">
-                        {post.date}
-                      </p>
-                    </div>
+  if (featuredLoading) return (
+      <section className="sc-section alt">
+        <div className="sc-container">
+          <div style={{ marginBottom: 44 }}>
+            <div className="sh" style={{ width: 110, height: 22, borderRadius: 999, marginBottom: 14 }} />
+            <div className="sh" style={{ width: 280, height: 42, borderRadius: 12, marginBottom: 10 }} />
+            <div className="sh" style={{ width: 200, height: 14, borderRadius: 8 }} />
+          </div>
+          <div className="skel-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="skel-card">
+                  <div className="sh sh-img" />
+                  <div className="sh-body">
+                    <div className="sh sh-line" style={{ width: '50%' }} />
+                    <div className="sh sh-line" />
+                    <div className="sh sh-line" style={{ width: '75%' }} />
+                    <div className="sh sh-line" style={{ height: 40 }} />
                   </div>
                 </div>
-              </motion.div>
             ))}
-          </motion.div>
-
-          <motion.div className="text-center mt-12" variants={itemVariants}>
-            <button
-              onClick={() => (window.location.href = "/blogs")}
-              className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors duration-300"
-            >
-              View All Posts
-            </button>
-          </motion.div>
-
+          </div>
         </div>
-      </motion.section>
+      </section>
+  );
 
-      <motion.div variants={itemVariants}>
-        <Footer />
-      </motion.div>
-      {showScrollBtn && (
-        <button
-          onClick={scrollToTop}
-          className="scroll-to-top-btn"
-          style={{
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            width: '50px',
-            height: '50px',
-            backgroundColor: '#ffcccb', 
-            color: '#444',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          ↑
-        </button>
-      )}
-    </motion.div>
+  if (featuredError || shouldShowNotFound || !featuredProducts?.length) return (
+      <section className="sc-section alt">
+        <div className="sc-container" style={{ textAlign: 'center', padding: '80px 0' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>{featuredError ? '⚠️' : '📦'}</div>
+          <p style={{ color: 'var(--c-text2)', marginBottom: 20, fontSize: 15 }}>
+            {featuredError ? 'Failed to load products' : 'No products available right now'}
+          </p>
+          {featuredError
+              ? <button onClick={loadFeaturedProducts} style={{ background: 'var(--c-green)', color: '#fff', border: 'none', padding: '11px 26px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}>Retry</button>
+              : <a href="/products" style={{ background: 'var(--c-green)', color: '#fff', padding: '11px 26px', borderRadius: 12, fontWeight: 700, textDecoration: 'none' }}>Browse All</a>}
+        </div>
+      </section>
+  );
+
+  return (
+      <section className="sc-section alt">
+        <div className="sc-container">
+          <div className="sc-head" ref={headRef}>
+            <motion.div
+                initial={{ opacity: 0, y: 22 }}
+                animate={headInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
+              <div className="sc-eyebrow"><i className="fa-solid fa-fire-flame-curved" /> Featured Picks</div>
+              <h2 className="sc-title">Top deals, <em>just for you</em></h2>
+              <p className="sc-sub">Handpicked products with the best discounts this week</p>
+            </motion.div>
+            <motion.a href="/products" className="sc-cta"
+                      initial={{ opacity: 0, x: 18 }}
+                      animate={headInView ? { opacity: 1, x: 0 } : {}}
+                      transition={{ duration: 0.5, delay: 0.12 }}>
+              View All <span className="arr"><i className="fa-solid fa-arrow-right" /></span>
+            </motion.a>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="filter-bar">
+            {TABS.map((t, i) => (
+                <motion.button key={t}
+                               className={`ftab ${tab === t ? "on" : ""}`}
+                               onClick={() => setTab(t)}
+                               initial={{ opacity: 0, y: 10 }}
+                               animate={headInView ? { opacity: 1, y: 0 } : {}}
+                               transition={{ delay: 0.15 + i * 0.05 }}>
+                  {t}
+                </motion.button>
+            ))}
+          </div>
+
+          <motion.div className="pgrid" layout>
+            <AnimatePresence mode="popLayout">
+              {(shown.length ? shown : featuredProducts).map((p, i) => (
+                  <ProductCard key={p.id} product={p} index={i}
+                               onAddToCart={handleAdd}
+                               isInCart={isItemInCart(p.id)}
+                               cartQuantity={getItemQuantity(p.id)} />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </section>
+  );
+});
+ProductShowCase.displayName = "ProductShowCase";
+
+/* ─── Home ─── */
+const Home = () => {
+  const [showTop, setShowTop] = useState(false);
+
+  useEffect(() => {
+    const fn = () => setShowTop(window.scrollY > 500);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  return (
+      <>
+        <style>{homeStyles}</style>
+        <div className="home-page">
+          <Header />
+          <HeroBanner />
+          <MarqueeStrip />
+          <section className="sc-section">
+            <div className="sc-container"><Categories /></div>
+          </section>
+          <ProductShowCase />
+          <Footer />
+        </div>
+        <AnimatePresence>
+          {showTop && (
+              <motion.button className="scr-top"
+                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                             initial={{ opacity: 0, scale: 0.55, y: 14 }}
+                             animate={{ opacity: 1, scale: 1, y: 0 }}
+                             exit={{ opacity: 0, scale: 0.55, y: 14 }}
+                             transition={{ type: "spring", stiffness: 380, damping: 22 }}>
+                ↑
+              </motion.button>
+          )}
+        </AnimatePresence>
+      </>
   );
 };
 
