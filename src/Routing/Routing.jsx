@@ -21,7 +21,6 @@ import Settings from "../Components/User/Settings";
 import Support from "../Components/User/Support";
 
 import Products from "../Components/Products/Products";
-import CategoryProducts from "../Components/Products/CategoryProducts";
 import CartPage from "../Components/Cart/CartPage";
 import WishlistPage from "../Components/Wishlist/WishlistPage";
 
@@ -91,7 +90,6 @@ const Routing = () => {
 
             {/* ── Products & Categories ── */}
             <Route path="/products" element={<Products />} />
-            <Route path="/category/:categorySlug" element={<CategoryProducts />} />
 
             {/* ── Cart (full page, no sidebar) ── */}
             <Route path="/cart" element={<CartPage />} />
