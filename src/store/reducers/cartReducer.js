@@ -111,7 +111,7 @@ export const checkoutAPI = createAsyncThunk("cart/checkout",
 export const fetchMyOrders = createAsyncThunk("cart/fetchMyOrders",
     async (_, { rejectWithValue }) => {
       try {
-        const { data } = await axios.get(`${apiURL}/users/me/orders/me`, { headers: authHeaders() });
+        const { data } = await axios.get(`${apiURL}/users/me/orders`, { headers: authHeaders() });
         return data?.data || [];
       } catch (err) {
         return rejectWithValue(err?.response?.data?.message || "Failed to fetch orders");
