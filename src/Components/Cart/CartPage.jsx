@@ -169,12 +169,7 @@ const CartPage = memo(() => {
                 action?.error?.message ||
                 "Checkout failed. Please try again."
             );
-            return;
         }
-
-        setCheckoutDone(true);
-        setTab("orders");
-        loadMyOrders();
     }, [checkout, token, navigate, loadMyOrders]);
 
     return (
@@ -307,7 +302,7 @@ const CartPage = memo(() => {
                                         cursor: checkoutLoading ? "not-allowed" : "pointer",
                                     }}
                                 >
-                                    {checkoutLoading ? "Placing Order..." : "Proceed to Checkout"}
+                                    {checkoutLoading ? "Redirecting to Payment..." : "Proceed to Checkout"}
                                 </button>
 
                                 <Link to="/products" style={S.continueLink}>

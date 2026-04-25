@@ -99,12 +99,17 @@ export const clearCartAPI = createAsyncThunk("cart/clearCart",
 
 export const checkoutAPI = createAsyncThunk("cart/checkout",
     async (_, { rejectWithValue }) => {
-      try {
-        const { data } = await axios.post(`${apiURL}/users/me/orders/checkout`, {}, { headers: authHeaders() });
-        return data?.data || [];
-      } catch (err) {
-        return rejectWithValue(err?.response?.data?.message || "Checkout failed");
-      }
+        try {
+            const { data } = await axios.post(
+                `${apiURL}/payments/stripe/checkout`,
+                {},
+                { headers: authHeaders() }
+            );
+
+            return data?.data;
+        } catch (err) {
+            return rejectWithValue(err?.response?.data?.message || "Checkout failed");
+        }
     }
 );
 
@@ -246,7 +251,6 @@ const cartSlice = createSlice({
         })
         .addCase(checkoutAPI.pending, (state) => { state.checkoutLoading = true; state.checkoutError = null; })
         .addCase(checkoutAPI.fulfilled, (state, action) => {
-          state.checkoutLoading = false;
           state.orders = action.payload;
           state.backendItems = [];
           state.backendTotalPrice = 0;
