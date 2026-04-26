@@ -1,5 +1,5 @@
 import React, {memo, useCallback, useEffect, useState} from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import useCart from "../../hooks/useCart";
 import Header from "../Header";
 import Footer from "../Footer";
@@ -35,7 +35,6 @@ const CartItem = memo(({ item, onInc, onDec, onRemove }) => {
         product,
     } = item;
 
-    // Support both local and backend shapes
     const displayName = name || product?.productName || "Product";
     const displayImage = imageUrl || product?.imageUrl || "";
     const displayPrice = price || Number(product?.currentPrice || 0);
@@ -125,6 +124,9 @@ OrderCard.displayName = "OrderCard";
 
 const CartPage = memo(() => {
     const navigate = useNavigate();
+    // FIX: read ?tab= query param so PaymentSuccessPage can redirect here with ?tab=orders
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const {
         cartItems,
         cartTotal,
@@ -138,6 +140,7 @@ const CartPage = memo(() => {
         clearCart,
         checkout,
         loadMyOrders,
+        refreshCart,
     } = useCart();
 
     const token = localStorage.getItem("accessToken");
@@ -148,7 +151,35 @@ const CartPage = memo(() => {
         }
     }, [token, navigate]);
 
-    const [tab, setTab] = useState("cart"); // "cart" | "orders"
+    // FIX: initialise tab from ?tab= query param (e.g. ?tab=orders after payment success)
+    const initialTab = searchParams.get("tab") === "orders" ? "orders" : "cart";
+    const [tab, setTab] = useState(initialTab);
+
+    // FIX: when switching to orders tab, always load fresh orders from the API
+    useEffect(() => {
+        if (tab === "orders" && token) {
+            loadMyOrders();
+        }
+    }, [tab, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // FIX: if we land on this page with ?tab=orders (e.g. from success page),
+    // also refresh the cart so stock numbers are up-to-date
+    useEffect(() => {
+        if (initialTab === "orders" && token) {
+            refreshCart();
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleTabChange = useCallback((key) => {
+        setTab(key);
+        // Keep URL in sync
+        if (key === "orders") {
+            setSearchParams({ tab: "orders" });
+        } else {
+            setSearchParams({});
+        }
+    }, [setSearchParams]);
+
     const [checkoutDone, setCheckoutDone] = useState(false);
     const [visibleCheckoutError, setVisibleCheckoutError] = useState("");
 
@@ -162,15 +193,20 @@ const CartPage = memo(() => {
 
         const action = await checkout();
 
-        if (action?.error) {
-            setVisibleCheckoutError(
+        // If checkout fails (no redirect happened), show error
+        if (action && checkoutAPI && !action.payload?.checkoutUrl) {
+            const errMsg =
                 action?.payload?.message ||
-                action?.payload ||
+                (typeof action?.payload === "string" ? action.payload : null) ||
                 action?.error?.message ||
-                "Checkout failed. Please try again."
-            );
+                "Checkout failed. Please try again.";
+
+            // Only set error if it's a rejection
+            if (action.type?.endsWith("/rejected")) {
+                setVisibleCheckoutError(errMsg);
+            }
         }
-    }, [checkout, token, navigate, loadMyOrders]);
+    }, [checkout, token, navigate]);
 
     return (
         <div style={S.page}>
@@ -193,11 +229,11 @@ const CartPage = memo(() => {
                     <div style={S.tabRow}>
                         {[
                             { key: "cart", label: "CART" + (itemCount > 0 ? ` (${itemCount})` : "") },
-                            { key: "orders", label: "ORDERS" },
+                            { key: "orders", label: "ORDERS" + (orders.length > 0 ? ` (${orders.length})` : "") },
                         ].map(({ key, label }) => (
                             <button
                                 key={key}
-                                onClick={() => setTab(key)}
+                                onClick={() => handleTabChange(key)}
                                 style={tab === key ? S.tabActive : S.tab}
                             >
                                 {label}
@@ -206,7 +242,15 @@ const CartPage = memo(() => {
                     </div>
                 </div>
 
-                {/* Checkout success banner */}
+                {/* Payment success banner — shown when landing here from Stripe success redirect */}
+                {initialTab === "orders" && tab === "orders" && (
+                    <div style={S.successBanner}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C6E49" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>Payment successful! Your order is being processed.</span>
+                    </div>
+                )}
+
+                {/* Manual checkout done banner */}
                 {checkoutDone && (
                     <div style={S.successBanner}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C6E49" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
@@ -323,7 +367,10 @@ const CartPage = memo(() => {
                                 <Link to="/signin" style={S.browseBtn}>Sign In</Link>
                             </div>
                         ) : ordersLoading ? (
-                            <div style={S.loadingText}>LOADING ORDERS...</div>
+                            <div style={S.loadingWrapper}>
+                                <div style={S.spinner} />
+                                <p style={S.loadingText}>Loading your orders...</p>
+                            </div>
                         ) : orders.length === 0 ? (
                             <div style={S.empty}>
                                 <h2 style={S.emptyTitle}>No orders yet</h2>
@@ -341,7 +388,10 @@ const CartPage = memo(() => {
                 )}
             </div>
 
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <style>{`
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
             <Footer />
         </div>
     );
@@ -421,6 +471,7 @@ const S = {
         fontSize: "13px",
         fontWeight: 500,
         color: "#2C6E49",
+        animation: "fadeIn 0.3s ease",
     },
     dismissBtn: {
         marginLeft: "auto",
@@ -670,13 +721,28 @@ const S = {
         textDecoration: "none",
         fontFamily: "'Instrument Sans', sans-serif",
     },
-    loadingText: {
-        textAlign: "center",
+    loadingWrapper: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         padding: "80px",
-        fontSize: "12px",
+        gap: "16px",
+    },
+    spinner: {
+        width: "32px",
+        height: "32px",
+        border: "2px solid #ECEAE4",
+        borderTopColor: "#1A1A18",
+        borderRadius: "50%",
+        animation: "spin 0.7s linear infinite",
+    },
+    loadingText: {
+        fontSize: "13px",
         fontWeight: 600,
-        color: "#C4BFB4",
-        letterSpacing: "0.1em",
+        color: "#B0ADA5",
+        letterSpacing: "0.04em",
+        margin: 0,
     },
     ordersGrid: { display: "flex", flexDirection: "column", gap: "16px" },
     orderCard: {
