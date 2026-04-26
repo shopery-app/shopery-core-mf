@@ -36,6 +36,7 @@ import AdminLogin from "../Components/Admin/AdminLogin";
 import AdminDashboard from "../Components/Admin/AdminDashboard";
 
 import PaymentSuccessPage from "../Components/Cart/PaymentSuccessPage";
+import PaymentCancelPage from "../Components/Cart/PaymentCancelPage.jsx";
 
 const AdminProtectedRoute = ({ children }) => {
     const adminAccessToken = localStorage.getItem("adminAccessToken");
@@ -125,6 +126,7 @@ const Routing = () => {
 
             {/* ── Payment Success ── */}
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
             {/* ── 404 ── */}
             <Route path="*" element={<NotFound />} />
