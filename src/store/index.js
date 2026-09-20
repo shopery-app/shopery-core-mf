@@ -9,12 +9,14 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import storageModule from "redux-persist/lib/storage";
 
 import cartReducer from "./reducers/cartReducer";
 import userReducer from "./reducers/userReducer";
 import productReducer from "./reducers/productReducer";
 import wishlistReducer from "./reducers/wishlistReducer.js";
+
+const storage = storageModule.default ?? storageModule;
 
 const cartPersistConfig = {
   key: "cart",
