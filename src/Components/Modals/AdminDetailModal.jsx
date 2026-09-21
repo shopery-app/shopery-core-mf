@@ -1,4 +1,5 @@
 import React from "react";
+import { toImageSrc } from "../../utils/image";
 
 const AdminDetailModal = ({ item, type, onClose }) => {
     if (!item) return null;
@@ -52,8 +53,8 @@ const AdminDetailModal = ({ item, type, onClose }) => {
         <div className="detail-grid">
             <div className="detail-avatar-row">
                 <div className="detail-avatar">
-                    {item.profilePhotoUrl
-                        ? <img src={item.profilePhotoUrl} alt={item.firstName} />
+                    {toImageSrc(item.profilePhoto)
+                        ? <img src={toImageSrc(item.profilePhoto)} alt={item.firstName} />
                         : <span>{item.firstName?.[0] || "U"}</span>}
                 </div>
                 <div>

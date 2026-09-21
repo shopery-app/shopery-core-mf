@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { apiURL } from "../../Backend/Api/api";
+import { toImageSrc } from "../../utils/image";
 
 const authHeaders = () => {
     const token = localStorage.getItem("accessToken");
@@ -314,7 +315,7 @@ export const selectCartItems = (state) => {
         quantity: ci.quantity,
         product: ci.product,
         name: ci.product?.productName || "Product",
-        imageUrl: ci.product?.imageUrl || "",
+        imageUrl: toImageSrc(ci.product?.image),
         price: Number(ci.product?.currentPrice || 0),
         originalPrice: Number(ci.product?.discountDto?.originalPrice || 0),
         category: ci.product?.category || "",

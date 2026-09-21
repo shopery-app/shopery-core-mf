@@ -13,6 +13,7 @@ import { apiURL } from "../../Backend/Api/api";
 import useCart from "../../hooks/useCart";
 import useUserShop from "../../hooks/useUserShop";
 import BuyerChat from "./BuyerChat";
+import { toImageSrc } from "../../utils/image";
 
 const Header = lazy(() => import("../Header"));
 const Footer = lazy(() => import("../Footer"));
@@ -24,6 +25,7 @@ LoadingSpinner.displayName = "LoadingSpinner";
 
 const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity }) => {
   const [imageError, setImageError] = useState(false);
+  const imageSrc = toImageSrc(product.image);
 
   const handleImageError = useCallback(() => setImageError(true), []);
 
@@ -35,9 +37,9 @@ const ProductCard = memo(({ product, onAddToCart, isInCart, cartQuantity }) => {
   return (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
         <div className="flex items-center justify-center bg-gray-200 w-full aspect-[4/3] rounded-lg overflow-hidden">
-          {!imageError && product.imageUrl ? (
+          {!imageError && imageSrc ? (
               <img
-                  src={product.imageUrl}
+                  src={imageSrc}
                   alt={product.productName}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   onError={handleImageError}
@@ -172,7 +174,7 @@ const ShopDetail = memo(() => {
           description: product.description,
           currentPrice: product.currentPrice,
           originalPrice: product.originalPrice,
-          imageUrl: product.imageUrl,
+          imageUrl: toImageSrc(product.image),
           condition: product.condition,
           category: product.category,
         });

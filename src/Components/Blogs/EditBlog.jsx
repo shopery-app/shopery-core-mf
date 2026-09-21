@@ -5,6 +5,7 @@ import { apiURL } from "../../Backend/Api/api";
 import Header from "../Header";
 import Footer from "../Footer";
 import { useToast } from "../UI/ToastProvider";
+import { toImageSrc } from "../../utils/image";
 
 const authHeaders = (token) => ({ Authorization: `Bearer ${token}` });
 
@@ -29,8 +30,9 @@ const EditBlog = () => {
             const res = await axios.get(`${apiURL}/users/me/blogs/${blogId}`, { headers: authHeaders(token) });
             const blog = res?.data?.data;
             setFormData({ title: blog?.blogTitle || "", content: blog?.content || "" });
-            setImageUrl(blog?.imageUrl || "");
-            setPreview(blog?.imageUrl || "");
+            const currentImage = toImageSrc(blog?.image);
+            setImageUrl(currentImage);
+            setPreview(currentImage);
         } catch (e) {
             showToast("Could not load story", "error");
             navigate("/blogs/me");

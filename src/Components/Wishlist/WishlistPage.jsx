@@ -4,6 +4,7 @@ import useWishlist from "../../hooks/useWishlist";
 import useCart from "../../hooks/useCart";
 import Header from "../Header";
 import Footer from "../Footer";
+import { toImageSrc } from "../../utils/image";
 
 const fmt = (n) => Number(n || 0).toFixed(2);
 
@@ -23,7 +24,7 @@ const WishlistPage = memo(() => {
         const action = await addToCart(product.id, 1, {
             id: product.id,
             productName: product.productName,
-            imageUrl: product.imageUrl,
+            imageUrl: toImageSrc(product.image),
             currentPrice: product.currentPrice,
             originalPrice: product.discountDto?.originalPrice,
             discountPct: product.discountDto?.percentage,
@@ -72,13 +73,14 @@ const WishlistPage = memo(() => {
                             const discountPct = product.discountDto?.percentage || 0;
                             const originalPrice = Number(product.discountDto?.originalPrice || 0);
                             const currentPrice = Number(product.currentPrice || 0);
+                            const imageSrc = toImageSrc(product.image);
 
                             return (
                                 <div key={product.id} style={S.card}>
                                     {/* Image */}
                                     <div style={S.imgWrap}>
-                                        {product.imageUrl ? (
-                                            <img src={product.imageUrl} alt={product.productName} style={S.img} loading="lazy"/>
+                                        {imageSrc ? (
+                                            <img src={imageSrc} alt={product.productName} style={S.img} loading="lazy"/>
                                         ) : (
                                             <div style={S.imgPlaceholder}>
                                                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="4" width="22" height="20" rx="3" stroke="#C4BFB4" strokeWidth="1.5"/><circle cx="10" cy="12" r="2.5" stroke="#C4BFB4" strokeWidth="1.5"/><path d="M3 22l6-5 5 5 5-4 6 5" stroke="#C4BFB4" strokeWidth="1.5" strokeLinejoin="round"/></svg>

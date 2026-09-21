@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./AdminDashboard.css";
 import { apiURL } from "../../Backend/Api/api";
+import { toImageSrc } from "../../utils/image";
 import AdminDetailModal from "../Modals/AdminDetailModal";
 
 // ─── Reject Modal ─────────────────────────────────────────────────────────────
@@ -425,8 +426,8 @@ const AdminDashboard = () => {
                                 <td>
                                   <div className="user-cell">
                                     <div className="avatar">
-                                      {user.profilePhotoUrl ? (
-                                          <img src={user.profilePhotoUrl} alt={user.firstName} className="avatar-img" />
+                                      {toImageSrc(user.profilePhoto) ? (
+                                          <img src={toImageSrc(user.profilePhoto)} alt={user.firstName} className="avatar-img" />
                                       ) : (
                                           user.firstName?.[0] || "U"
                                       )}

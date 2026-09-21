@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import useCart from "../../hooks/useCart";
 import Header from "../Header";
 import Footer from "../Footer";
+import { toImageSrc } from "../../utils/image";
 
 const fmt = (n) => Number(n || 0).toFixed(2);
 
@@ -36,7 +37,7 @@ const CartItem = memo(({ item, onInc, onDec, onRemove }) => {
     } = item;
 
     const displayName = name || product?.productName || "Product";
-    const displayImage = imageUrl || product?.imageUrl || "";
+    const displayImage = imageUrl || toImageSrc(product?.image);
     const displayPrice = price || Number(product?.currentPrice || 0);
     const displayOriginal = originalPrice || Number(product?.discountDto?.originalPrice || 0);
     const displayDiscount = discountPct || product?.discountDto?.percentage || 0;
