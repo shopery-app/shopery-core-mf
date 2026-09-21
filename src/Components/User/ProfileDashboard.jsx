@@ -9,6 +9,7 @@ import { apiURL } from "../../Backend/Api/api";
 import axios from "axios";
 import useUserShop from "../../hooks/useUserShop";
 import CreateShopModal from "../Modals/CreateShopModal.jsx";
+import { toImageSrc } from "../../utils/image";
 
 const initialState = {
   firstName: "",
@@ -116,8 +117,8 @@ const ProfileDashboard = () => {
       setCurrentUser(userData);
       setFetchError(null);
 
-      if (userData.profilePhotoUrl) {
-        setProfilePhotoUrl(userData.profilePhotoUrl);
+      if (userData.profilePhoto) {
+        setProfilePhotoUrl(toImageSrc(userData.profilePhoto));
       }
 
       dispatch({ type: "SET_INITIAL_DATA", data: userData });
@@ -303,10 +304,10 @@ const ProfileDashboard = () => {
       });
 
       if (response.data.status === "OK" || response.status === 200) {
-        const newUrl = response.data.data ?? response.data;
-        if (typeof newUrl === "string") {
-          setProfilePhotoUrl(newUrl);
-          setCurrentUser((prev) => ({ ...prev, profilePhotoUrl: newUrl }));
+        const newPhoto = response.data.data ?? response.data;
+        if (typeof newPhoto === "string") {
+          setProfilePhotoUrl(toImageSrc(newPhoto));
+          setCurrentUser((prev) => ({ ...prev, profilePhoto: newPhoto }));
         }
         setImageLoadError(false);
         showSuccess("Profile image updated successfully!");
@@ -329,7 +330,7 @@ const ProfileDashboard = () => {
       if (response.data.status === "OK" || response.status === 200) {
         setProfilePhotoUrl(null);
         setImageLoadError(false);
-        setCurrentUser((prev) => ({ ...prev, profilePhotoUrl: null }));
+        setCurrentUser((prev) => ({ ...prev, profilePhoto: null }));
         showSuccess("Profile image deleted successfully!");
       }
     } catch (error) {
@@ -397,7 +398,7 @@ const ProfileDashboard = () => {
     setImageLoading(false);
   };
 
-  const photoUrl = currentUser.profilePhotoUrl || profilePhotoUrl;
+  const photoUrl = toImageSrc(currentUser.profilePhoto) || profilePhotoUrl;
 
   return (
       <>

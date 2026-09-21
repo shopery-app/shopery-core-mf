@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { apiURL } from "../../../Backend/Api/api";
 import { isJwtExpired } from "../../../utils/jwt";
+import { toImageSrc } from "../../../utils/image";
 import useUserShop from "../../../hooks/useUserShop";
 import Chat from "../../Advisory/Chat";
 import SellerInbox from "../SellerInbox.jsx";
@@ -113,8 +114,8 @@ const ProductCard = memo(({ product, showEditModal, onDelete }) => {
   return (
       <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-center bg-gray-200 w-full aspect-[4/3] rounded-lg overflow-hidden">
-          {detail.imageUrl ? (
-              <img src={detail.imageUrl} alt={detail.productName} className="w-full h-full object-cover" loading="lazy" />
+          {toImageSrc(detail.image) ? (
+              <img src={toImageSrc(detail.image)} alt={detail.productName} className="w-full h-full object-cover" loading="lazy" />
           ) : (
               <i className="fa-solid fa-image text-3xl text-gray-400" />
           )}
@@ -727,7 +728,7 @@ const ShopDashboard = memo(() => {
               <Chat
                   isLocked={shopData?.subscriptionTier !== "PREMIUM"}
                   onUpgrade={() => navigate("/pricing")}
-                  userImage={profile?.profilePhotoUrl}
+                  userImage={toImageSrc(profile?.profilePhoto)}
                   userName={profile?.firstName || "Merchant"}
               />
             </div>

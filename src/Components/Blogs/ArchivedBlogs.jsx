@@ -5,6 +5,7 @@ import { apiURL } from "../../Backend/Api/api";
 import Header from "../Header";
 import Footer from "../Footer";
 import { useToast } from "../UI/ToastProvider";
+import { toImageSrc } from "../../utils/image";
 
 const authHeaders = (token) => ({ Authorization: `Bearer ${token}` });
 
@@ -73,9 +74,9 @@ const ArchivedBlogs = () => {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "24px" }}>
                         {blogs.map((blog) => (
                             <div key={blog.id} style={{ background: "#FFFFFF", border: "1px solid #ECEAE4", borderRadius: "16px", overflow: "hidden" }}>
-                                {blog.imageUrl && (
+                                {toImageSrc(blog.image) && (
                                     <div style={{ height: "160px", overflow: "hidden" }}>
-                                        <img src={blog.imageUrl} alt={blog.blogTitle} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(30%)" }} />
+                                        <img src={toImageSrc(blog.image)} alt={blog.blogTitle} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(30%)" }} />
                                     </div>
                                 )}
                                 <div style={{ padding: "20px" }}>

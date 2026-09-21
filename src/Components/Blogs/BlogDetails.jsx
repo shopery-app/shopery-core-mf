@@ -5,6 +5,7 @@ import { apiURL } from "../../Backend/Api/api";
 import Header from "../Header";
 import Footer from "../Footer";
 import { useToast } from "../UI/ToastProvider";
+import { toImageSrc } from "../../utils/image";
 
 const authHeaders = (token) => token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -119,8 +120,8 @@ const BlogDetails = () => {
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "20px", marginBottom: "40px", padding: "20px 0", borderTop: "1px solid #ECEAE4", borderBottom: "1px solid #ECEAE4" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ width: "44px", height: "44px", borderRadius: "50%", overflow: "hidden", background: "#E8E5DE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {blog.author?.profilePhotoUrl ? (
-                                <img src={blog.author.profilePhotoUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
+                            {toImageSrc(blog.author?.profilePhoto) ? (
+                                <img src={toImageSrc(blog.author.profilePhoto)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
                             ) : (
                                 <span style={{ fontSize: "16px", fontWeight: 600, color: "#6B5A3E" }}>
                                     {blog.author?.name?.charAt(0) || "?"}
@@ -158,9 +159,9 @@ const BlogDetails = () => {
                     </div>
                 </div>
 
-                {blog.imageUrl && (
+                {toImageSrc(blog.image) && (
                     <div style={{ marginBottom: "48px", borderRadius: "16px", overflow: "hidden" }}>
-                        <img src={blog.imageUrl} style={{ width: "100%", display: "block" }} alt={blog.blogTitle} />
+                        <img src={toImageSrc(blog.image)} style={{ width: "100%", display: "block" }} alt={blog.blogTitle} />
                     </div>
                 )}
 
