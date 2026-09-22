@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Build, Push and Deploy
 
 on:
   push:
@@ -24,3 +24,16 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/shopery-core-mf:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/shopery-core-mf:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL_TEST }}
+  restart:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: kubectl -n test rollout restart deployment frontend
