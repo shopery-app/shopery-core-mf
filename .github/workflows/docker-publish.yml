@@ -33,4 +33,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: kubectl -n test rollout restart deployment frontend
+          script: |
+            export KUBECONFIG=/home/shopery-deploy/.kube/config
+            kubectl -n test rollout restart deployment frontend
+            kubectl -n test rollout status deployment frontend --timeout=310s
