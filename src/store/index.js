@@ -1,48 +1,33 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from "redux-persist";
+import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from "redux-persist";
 import storageModule from "redux-persist/lib/storage";
 
-import cartReducer from "./reducers/cartReducer";
-import userReducer from "./reducers/userReducer";
-import productReducer from "./reducers/productReducer";
-import wishlistReducer from "./reducers/wishlistReducer.js";
+import authReducer from "./slices/authSlice";
+import cartReducer from "./slices/cartSlice";
+import ordersReducer from "./slices/ordersSlice";
+import wishlistReducer from "./slices/wishlistSlice";
+import productsReducer from "./slices/productsSlice";
 
 const storage = storageModule.default ?? storageModule;
 
 const cartPersistConfig = {
   key: "cart",
   storage,
-  whitelist: [
-    "isLocal",
-    "localItems",
-    "localTotalPrice",
-    "productDetailsCache",
-    "isCartOpen",
-    "showSuccess",
-    "lastAddedItem",
-  ],
+  whitelist: ["isLocal", "localItems", "localTotalPrice", "productDetailsCache", "showSuccess", "lastAddedItem"],
 };
 
 const rootPersistConfig = {
   key: "shopery-root",
   storage,
-  whitelist: ["cart", "user"],
+  whitelist: ["cart"],
 };
 
 const rootReducer = combineReducers({
+  auth: authReducer,
   cart: persistReducer(cartPersistConfig, cartReducer),
-  user: userReducer,
-  products: productReducer,
+  orders: ordersReducer,
   wishlist: wishlistReducer,
+  products: productsReducer,
 });
 
 const persistedReducer = persistReducer(rootPersistConfig, rootReducer);
@@ -51,9 +36,7 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
+      serializableCheck: { ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER] },
     }),
 });
 
