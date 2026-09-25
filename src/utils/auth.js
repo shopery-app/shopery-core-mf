@@ -1,37 +1,20 @@
-import {
-  getAccessToken,
-  getRefreshToken,
-  clearTokens,
-  isTokenExpired,
-} from "./tokenService";
+import { getAccessToken, getRefreshToken, clearTokens, isTokenExpired } from "./tokenService";
 
 export const isAuthenticated = () => {
-  try {
-    const accessToken = getAccessToken();
-    const refreshToken = getRefreshToken();
+  const accessToken = getAccessToken();
+  if (accessToken && !isTokenExpired(accessToken)) return true;
+  const refreshToken = getRefreshToken();
+  return !!(refreshToken && !isTokenExpired(refreshToken));
+};
 
-    if (accessToken && !isTokenExpired(accessToken)) {
-      return true;
-    }
-
-    return !!(refreshToken && !isTokenExpired(refreshToken));
-  } catch (error) {
-    console.error("Auth check error:", error);
-    return false;
-  }
+export const isAdminAuthenticated = () => {
+  const token = localStorage.getItem("adminAccessToken");
+  return !!token && !isTokenExpired(token);
 };
 
 export const logout = () => {
   clearTokens();
-
-  if (window.location.pathname !== "/signin") {
-    window.location.replace("/signin");
-  }
-};
-
-export const getCurrentUser = () => {
-  const savedUser = localStorage.getItem("currentUser");
-  return savedUser ? JSON.parse(savedUser) : null;
+  if (window.location.pathname !== "/signin") window.location.replace("/signin");
 };
 
 export { getAccessToken, getRefreshToken } from "./tokenService";

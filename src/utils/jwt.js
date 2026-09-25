@@ -7,7 +7,7 @@ export const parseJwt = (token) => {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -15,17 +15,8 @@ export const parseJwt = (token) => {
   }
 };
 
-export const getExpiryMs = (token) => {
-  const payload = parseJwt(token);
-  if (!payload?.exp) return 0;
-  return payload.exp * 1000; // ms
-};
-
-export const msUntilExpiry = (token) => {
-  const expMs = getExpiryMs(token);
-  return expMs - Date.now();
-};
-
 export const isJwtExpired = (token, skewSeconds = 5) => {
-  return msUntilExpiry(token) <= skewSeconds * 1000;
+  const payload = parseJwt(token);
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 - Date.now() <= skewSeconds * 1000;
 };
