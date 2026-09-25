@@ -8,7 +8,7 @@ const BlogCard = ({ blog, liked, onToggleLike }) => {
   const imageUrl = toImageSrc(blog.image);
   return (
     <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-shadow hover:shadow-card">
-      <Link to={`/blogs/${blog.id}`} className="aspect-[16/10] bg-surface-sunken">
+      <Link to={`/blogs/${blog.id}`} state={{ blog }} className="aspect-[16/10] bg-surface-sunken">
         {imageUrl ? (
           <img src={imageUrl} alt={blog.blogTitle} className="h-full w-full object-cover" />
         ) : (
@@ -18,7 +18,7 @@ const BlogCard = ({ blog, liked, onToggleLike }) => {
         )}
       </Link>
       <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <Link to={`/blogs/${blog.id}`} className="line-clamp-2 text-[14.5px] font-semibold text-ink hover:underline">
+        <Link to={`/blogs/${blog.id}`} state={{ blog }} className="line-clamp-2 text-[14.5px] font-semibold text-ink hover:underline">
           {blog.blogTitle}
         </Link>
         <p className="line-clamp-2 text-[13px] text-ink-secondary">{blog.content}</p>

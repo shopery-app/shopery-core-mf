@@ -5,7 +5,6 @@ export const getAllBlogs = ({ page = 0, size = 12 } = {}) =>
   apiClient.get("/blogs", { params: { page, size } }).then(unwrap);
 export const searchBlogs = (query, { page = 0, size = 12 } = {}) =>
   apiClient.get("/blogs/search", { params: { query, page, size } }).then(unwrap);
-export const getBlogById = (blogId) => apiClient.get(`/blogs/${blogId}`).then(unwrap);
 
 // Owned
 export const getMyBlogs = ({ page = 0, size = 20 } = {}) =>

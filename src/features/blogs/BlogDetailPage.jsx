@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
 import Avatar from "../../components/ui/Avatar";
 import Button from "../../components/ui/Button";
@@ -10,8 +10,23 @@ import { isAuthenticated } from "../../utils/auth";
 import { toImageSrc } from "../../utils/image";
 import { formatDate } from "../../utils/format";
 
+const resolveBlogById = async (blogId) => {
+  const ownBlog = isAuthenticated() ? await blogsApi.getMyBlog(blogId).catch(() => null) : null;
+  if (ownBlog) return ownBlog;
+
+  const pageSize = 100;
+  for (let page = 0; page < 5; page++) {
+    const data = await blogsApi.getAllBlogs({ page, size: pageSize });
+    const match = (data?.content || []).find((b) => b.id === blogId);
+    if (match) return match;
+    if (page + 1 >= (data?.totalPages || 1)) break;
+  }
+  return null;
+};
+
 const BlogDetailPage = () => {
   const { blogId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,12 +36,25 @@ const BlogDetailPage = () => {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    blogsApi
-      .getBlogById(blogId)
-      .then((data) => active && setBlog(data))
-      .catch(() => active && setError("This story could not be found."))
-      .finally(() => active && setLoading(false));
+    const stateBlog = location.state?.blog;
+
+    if (stateBlog?.id === blogId) {
+      setBlog(stateBlog);
+      setError("");
+      setLoading(false);
+    } else {
+      setBlog(null);
+      setError("");
+      setLoading(true);
+      resolveBlogById(blogId)
+        .then((data) => {
+          if (!active) return;
+          if (data) setBlog(data);
+          else setError("This story could not be found.");
+        })
+        .catch(() => active && setError("This story could not be found."))
+        .finally(() => active && setLoading(false));
+    }
 
     if (isAuthenticated()) {
       Promise.all([blogsApi.getLikedBlogs({ size: 500 }), blogsApi.getSavedBlogs({ size: 500 })])
@@ -40,7 +68,7 @@ const BlogDetailPage = () => {
     return () => {
       active = false;
     };
-  }, [blogId]);
+  }, [blogId, location.state]);
 
   if (loading) return <PageShell><PageSpinner /></PageShell>;
 
